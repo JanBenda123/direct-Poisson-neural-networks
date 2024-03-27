@@ -426,8 +426,7 @@ def generate_E_points(args, energy):
         return mx_for_plot, my_for_plot, mz_for_plot, rx_for_plot, ry_for_plot, rz_for_plot, E_for_plot
     else: #RB
         return mx_for_plot, my_for_plot, mz_for_plot, E_for_plot
-    
-    
+       
 def generate_L_points(args, L_tensor):
     """
     The function `generate_L_points` generates random initial conditions for a given model and returns
@@ -501,6 +500,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot_HT_errors", default=False, action="store_true", help="Plot erros in m and r, 3D.")
     parser.add_argument("--plot_msq_errors", default=False, action="store_true", help="Plot erros in m.")
     parser.add_argument("--plot_rsq_errors", default=False, action="store_true", help="Plot erros in r.")
+    parser.add_argument("--plot_CANN_errors", default=False, action="store_true", help="Plot erros in z for CANN mode")
     parser.add_argument("--plot_mrs_errors", default=False, action="store_true", help="Plot erros in m.r.")
     parser.add_argument("--plot_am_errors", default=False, action="store_true", help="Plot erros in angular momentum (r x p).")
     parser.add_argument("--plot_training_errors", default=False, action="store_true", help="Plot training erros.")
@@ -531,6 +531,10 @@ if __name__ == "__main__":
     parser.add_argument("--plot_Ls", default=False, action="store_true", help="Plot L from uniform ball.")
     parser.add_argument("--plot_spectrum_errors", default=False, action="store_true", help="Plot spectrum-of-L errors.")
     parser.add_argument("--plot_compatibility", default=False, action="store_true", help="Plot L compatibility errors")
+
+    parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float , default=[0])
+    parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False,type=float , default=[1])
+    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
     #parser.add_argument("--plot_compatibility_hist", default=False, action="store_true", help="Plot L compatibility errors histogram")
 
 
@@ -1223,6 +1227,10 @@ if __name__ == "__main__":
     if args.plot_HT_errors:
         plot_fields_errors(["mx", "my", "mz"], field_name = "m")
         plot_fields_errors(["rx", "ry", "rz"], field_name = "r")
+
+    if args.plot_CANN_errors:
+        plot_fields_errors(["q1", "p1"], field_name = "z")
+
 
     # The above code is plotting and analyzing mean squared errors (msq) for different paths in a given
     # dataset.

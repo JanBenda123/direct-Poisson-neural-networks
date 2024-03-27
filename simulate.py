@@ -29,7 +29,7 @@ def simulate(args, method = "normal"): #simulate with args given below
                     [0,1/args.Iy,0],\
                     [0,0, 1/args.Iz]])
                     
-    ts, ms, msqs, Ls, Es, casss, rs, mrs, rsqs, qs, ps = [], [], [], [], [], [], [], [], [], [], []
+    ts, ms, msqs, Ls, Es, casss, rs, mrs, rsqs, zs = [], [], [], [], [], [], [], [], [], []
 
     if args.model == "RB": # Rigid body
         if method == "implicit":
@@ -218,13 +218,10 @@ def simulate(args, method = "normal"): #simulate with args given below
         Ls.append(solver.get_L(m))
         Es.append(solver.get_E(m))
     elif args.model == "CANN":
-        q = np.array(args.init_q)
-        p = np.array(args.init_p)
-        z = np.hstack((q,p))
+        z = np.hstack((args.init_q,args.init_p))
         Ls.append(solver.get_L(z))
         Es.append(solver.get_E(z))
-        qs.append(q)
-        ps.append(p)
+        zs.append(z)
     else:
         raise Exception("Unknown model.")
 
@@ -254,7 +251,7 @@ def simulate(args, method = "normal"): #simulate with args given below
         elif args.model == "P3D" or args.model == "K3D" or args.model=="P2D":
             (r, m) = solver.m_new()
         elif args.model == "CANN":
-            (q,p) = solver.z_new()
+            z = solver.z_new()
 
 
         if i % store_each == 0:
@@ -284,11 +281,9 @@ def simulate(args, method = "normal"): #simulate with args given below
                 rs.append(np.array(r, copy=True))
                 rsqs.append(np.dot(r,r))
             elif args.model == "CANN":
-                z = np.concatenate((q,p))
                 Ls.append(solver.get_L(z))
                 Es.append(solver.get_E(z))
-                qs.append(q)
-                ps.append(p)
+                zs.append(z)
             if method == "implicit":
                 casss.append(solver.get_cass(m))
             else:
@@ -308,10 +303,8 @@ def simulate(args, method = "normal"): #simulate with args given below
     Es = np.array(Es[1:]).reshape(-1,1)
     casss = np.array(casss[1:]).reshape(-1,1)
 
-    qs_old = np.array(qs[:-1])
-    qs = np.array(qs[1:])
-    ps_old = np.array(ps[:-1])
-    ps = np.array(ps[1:])
+    zs_old = np.array(zs[:-1])
+    zs = np.array(zs[1:])
 
     rs_old = np.array(rs[:-1])
     rs = np.array(rs[1:])
@@ -338,7 +331,7 @@ def simulate(args, method = "normal"): #simulate with args given below
             data = np.hstack((ts, ms_old, ms, Ls[:,0,1].reshape(-1,1), Ls[:,0,2].reshape(-1,1), Ls[:,0,3].reshape(-1,1), Ls[:,1,2].reshape(-1,1), Ls[:,1,3].reshape(-1,1), Ls[:,2,3].reshape(-1,1), Es))
             return pd.DataFrame(data, columns = ["time", "old_u", "old_x", "old_y", "old_z", "u", "x",  "y", "z", "L_01", "L_02", "L_03", "L_12", "L_13", "L_23", "E"])#return results of simulation
         elif args.model =="CANN":
-            data = np.hstack((ts, qs_old, ps_old, qs, ps, Es))
+            data = np.hstack((ts, zs_old, zs, Es))
             cols = ["time"] + [f"old_q{i}" for i in range(1, solver.dim+1)] + [f"old_p{i}" for i in range(1, solver.dim+1)] + [f"q{i}" for i in range(1, solver.dim+1)] + [f"p{i}" for i in range(1, solver.dim+1)]+["E"]
             return pd.DataFrame(data, columns = cols)#return results of simulation
 

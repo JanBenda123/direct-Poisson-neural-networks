@@ -1746,57 +1746,45 @@ class ShivamoggiNeural(ShivamoggiIMR):
 
 
 class Cannonical(object):
-    def __init__(self, dt, q_init, p_init, hamiltonian="1DHO", scheme = "FE"):
-        self.q = np.array(q_init)
-        self.p = np.array(p_init)
-        self.dt = dt
+    def __init__(self, dt, init_q, init_p, hamiltonian="1DHO", scheme = "FE"):
+        self.z = np.hstack((np.array(init_q),np.array(init_p)))
+        self.dt =dt
 
-
-        self.H, self.dim  = Cannonical.get_ham(hamiltonian)
         
 
-        if len(q_init) == len(p_init) and self.dim == len(p_init) :
+
+        self.get_E, self.dim  = Cannonical.get_ham(hamiltonian)
+
+        if len(init_q) == len(init_p) and self.dim == len(init_p) :
             self.L = np.vstack([np.hstack([np.zeros((self.dim,self.dim)),np.eye(self.dim)]),np.hstack([-np.eye(self.dim), np.zeros((self.dim,self.dim))])])
         else:
-            raise Exception(f"Wrong sizes of p and q provided. Expected {self.dim} for {hamiltonian}, got {len(q_init)} for q and {len(p_init)} for p")
+            raise Exception(f"Wrong sizes of p and q provided. Expected {self.dim} for {hamiltonian}, got {len(init_q)} for q and {len(init_p)} for p")
         
 
         self.scheme = scheme
         self.schemes = {"FE": self.z_new_FE}
-    def get_E(self,z):
-        (q,p) = self.unpack_z(z)
-        return self.H(q,p)
-
     def get_ham(hamiltonian):
-        ham_list = {"1DHO": (lambda p,q: 1/2*0.3*p[0]**2+1/2*q[0]**2, 1)}
+        ham_list = {"1DHO": (lambda z: 1/2*0.3*z[1]**2+1/2*z[0]**2, 1)}
         if hamiltonian not in ham_list.keys():
             raise Exception(f"Unknown hamiltonian identifier {hamiltonian}. Use one of the following: {ham_list.keys}")
         return ham_list[hamiltonian]
-
-    def unpack_z(self,z):
-        q = z[:self.dim]
-        p =z [self.dim:]
-
-        return (q,p)
-
     def get_grad_E(self,z):
-        
         z = torch.tensor(z, requires_grad=True)
 
+
+        
         output = self.get_E(z)
         output.backward()
-        z = self.tensor_to_numpy(z.grad)
+        z=self.tensor_to_numpy(z.grad)
 
-        return self.unpack_z(z)
+        return z
     
     def get_z_dot(self,z):
-        
         return self.get_L(z) @ self.get_grad_E(z) 
     
     def z_new_FE(self):
-        qp = np.concatenate((self.q, self.p))
-        new_qp = qp+ self.dt * self.get_z_dot(qp) 
-        return (new_qp[:self.dim],new_qp[self.dim:])
+        new_z = self.z+ self.dt * self.get_z_dot(self.z) 
+        return new_z
 
     def get_L(self, z):
         """
@@ -1806,12 +1794,24 @@ class Cannonical(object):
         :return: a 4x4 numpy array called L.
         """
         return self.L
-    def tensor_to_numpy(self,tensor):
-        tensor = tensor.detach().cpu()
-        if tensor.numel() == 1:
 
+    def tensor_to_numpy(self,tensor):
+        """
+        Convert a PyTorch tensor to a NumPy array. Handles both single-element and multi-element tensors.
+        Args:
+        - tensor: PyTorch tensor to convert.
+        Returns:
+        - A NumPy array representation of the input tensor.
+        """
+        # Ensure the tensor is detached from the computation graph and moved to CPU
+        tensor = tensor.detach().cpu()
+        
+        # Check if the tensor is a scalar (i.e., contains only one element)
+        if tensor.numel() == 1:
+            # Use .item() to get the scalar value as a Python float and then create a NumPy array
             return np.array([tensor.item()])
         else:
+            # Use .numpy() to convert the tensor directly to a NumPy array
             return tensor.numpy()
 
     def z_new(self): #return new r and p
@@ -1819,11 +1819,12 @@ class Cannonical(object):
         The function `m_new` returns new values for `r` and `p` by solving a system of equations using the `fsolve` function.
         :return: a tuple containing two tuples. The first tuple contains the values of `rx` and `ry`, and the second tuple contains the values of `px` and `py`.
         """
-        (self.q,self.p) = self.schemes[self.scheme]()
-        return (self.q,self.p)
+        self.z = self.schemes[self.scheme]()
+        return self.z
         
+
 class GeneralNeural(Cannonical):
-    def __init__(self, dt, q_init, p_init, scheme = "FE", method = "without", name = DEFAULT_folder_name):
+    def __init__(self, dt, init_q, init_p, scheme = "FE", method = "soft", name =  DEFAULT_folder_name):
         """
         The function initializes a ShivamoggiNeural object with specified parameters and loads the
         appropriate neural network models based on the chosen method.
@@ -1839,7 +1840,7 @@ class GeneralNeural(Cannonical):
         :param method: The "method" parameter in the code snippet refers to the method used for solving the Shivamoggi equations. There are three possible options:, defaults to without (optional)
         :param name: The `name` parameter is a string that represents the folder name where the saved models are located. It is used to load the pre-trained neural network models for energy and L (Lagrangian) calculations. The `name` parameter is used to construct the file paths for loading the models
         """
-        super().__init__(dt, q_init, p_init, scheme=scheme)
+        super().__init__( dt, init_q, init_p, hamiltonian="1DHO", scheme = scheme )
         # Load network
         self.method = method
         if method == "soft":
@@ -1853,7 +1854,7 @@ class GeneralNeural(Cannonical):
             self.L_net = torch.load(name+'/saved_models/without_jacobi_L')
             self.L_net.eval()
         elif method == "implicit":
-            raise Exception("Implicit solver not yet implemented for Cannonical.")
+            raise Exception("Implicit solver not yet implemented for Shivamoggi.")
             self.energy_net = torch.load(name+'/saved_models/implicit_jacobi_energy')
             self.energy_net.eval()
             self.J_net = torch.load(name+'/saved_models/implicit_jacobi_J')
@@ -1884,26 +1885,12 @@ class GeneralNeural(Cannonical):
             L = self.L_net(z_tensor).detach().numpy()[0]
             hamiltonian = np.matmul(L, E_z.detach().numpy())
         else:
-            raise Exception("Implicit not implemented for Cannonical yet.")
+            raise Exception("Implicit not implemented for HT yet.")
             J, cass = self.J_net(z_tensor)
             J = J.detach().numpy()
             hamiltonian = np.cross(J, E_z.detach().numpy())
         return hamiltonian
 
-    def f(self, mNew):#defines the function f zero of which is sought
-        """
-        The function `f` calculates the difference between the old and new values of `m` and adds the
-        product of the time step and the derivative of `z` to it.
-        
-        :param mNew: The parameter `mNew` represents the new values of `m` that are passed to the function `f`
-        :return: the difference between the old values and the new values, plus the product of the time step and the derivative of the neural network with respect to the midpoint of the old and new values.
-        """
-        mOld = np.array([self.u, self.x[0], self.x[1], self.x[2]])
-        m_mid = 0.5*(np.array(mNew)+mOld)
-
-        zd = self.neural_zdot(m_mid)
-        res = np.array(mOld) - np.array(mNew) + self.dt*zd
-        return res
 
     def get_cass(self, z):
         """
@@ -1941,14 +1928,6 @@ class GeneralNeural(Cannonical):
         E = self.energy_net(z_tensor).detach().numpy()[0]
         return E
 
-    def m_new(self): #return new r and p
-        """
-        The function `m_new` returns the values of `u`, `x[0]`, `x[1]`, and `x[2]` after solving the
-        equation `f` using the `fsolve` function.
-
-        :return: a tuple containing the values of self.u, self.x[0], self.x[1], and self.x[2].
-        """
-        #calculate
-        (self.u, self.x[0], self.x[1], self.x[2])= fsolve(self.f, (self.u, self.x[0], self.x[1], self.x[2]))
-
-        return (self.u, self.x[0], self.x[1], self.x[2])
+    def m_new(self): 
+        self.z = self.schemes[self.method]()
+        return self.z

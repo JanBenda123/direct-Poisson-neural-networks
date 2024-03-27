@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from math import sqrt
 from learn import *
 import multiprocessing as mp
+from models.RigidBody import Cannonical
 
 
 def norm(x, y, z):
@@ -283,6 +284,8 @@ def resolve_automatic_dt(args):
         omega = 2/(args.alpha*math.sqrt(args.M/(2*e**3)))
     elif args.model == "Sh": #Shivamoggi
         omega = 2*math.pi
+    elif args.model == "CANN": #Cannonical
+        omega = 2*math.pi
     else:
         raise Exception("Unkonown model.")
     dt = 0.01 * 2*math.pi/omega
@@ -299,7 +302,7 @@ if __name__ == "__main__":
     #Typical usage: python3 comparison.py --generate --steps=100 --implicit --soft --without
     parser = argparse.ArgumentParser()
     parser.add_argument("--scheme", default="IMR", type=str, help="Numerical scheme. FE forward euler, BE backward euler, CN Crank-Nicholson")
-    parser.add_argument("--model", default="RB", type=str, help="Model: RB, HT, P3D, K3D, or P2D.")
+    parser.add_argument("--model", default="RB", type=str, help="Model: RB, HT, P3D, K3D, P2D or CANN.")
     parser.add_argument("--steps", default=200, type=int, help="Number of simulation steps")
     parser.add_argument("--init_mx", default=10.0, type=float, help="A value of momentum, x component")
     parser.add_argument("--init_my", default=3.0, type=float, help="A value of momentum, y component") 
@@ -336,12 +339,22 @@ if __name__ == "__main__":
     parser.add_argument("--cuda", default=False, action="store_true", help="Use CUDA (under construction).")
     parser.add_argument("--zeta", default=0.0, type=float, help="Dissipation coefficient (NOT IMPLEMENTED)")
 
+    parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float , default=[0])
+    parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False,type=float , default=[1])
+    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
+
     args = parser.parse_args([] if "__file__" not in globals() else None)
 
     if args.dt == 0.0: #automatic
         args.dt = resolve_automatic_dt(args)
 
     check_folder(args.folder_name) #check whether the folders data and saved_models exist, or create them
+
+
+    if args.model == "CANN":
+        _ , general_dim = Cannonical.get_ham(args.H)
+    else:
+        general_dim = None
 
     #save args to file
     original_stdout = sys.stdout
@@ -363,27 +376,27 @@ if __name__ == "__main__":
         print("Learning implicit Jacobi.")    
         print("-------------------------------")
         if args.scheme == "IMR":
-            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative)
+            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim)
         else:
-            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative)
+            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim)
         learner.learn(method = "implicit", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor)
     if args.soft:
         print("-------------------------------")
         print("Learning soft Jacobi.")    
         print("-------------------------------")
         if args.scheme == "IMR":
-            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative)
+            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim)
         else:
-            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative)
+            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim)
         learner.learn(method = "soft", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor, jac_prefactor = args.jac_prefactor)
     if args.without:
         print("-------------------------------")
         print("Learning without Jacobi.")    
         print("-------------------------------")
         if args.scheme == "IMR":
-            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative)
+            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim)
         else:
-            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative)
+            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim)
         learner.learn(method = "without", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor)
     if not args.no_show:
         plot_training_errors(args)

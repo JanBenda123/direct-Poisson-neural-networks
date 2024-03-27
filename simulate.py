@@ -29,7 +29,7 @@ def simulate(args, method = "normal"): #simulate with args given below
                     [0,1/args.Iy,0],\
                     [0,0, 1/args.Iz]])
                     
-    ts, ms, msqs, Ls, Es, casss, rs, mrs, rsqs = [], [], [], [], [], [], [], [], []
+    ts, ms, msqs, Ls, Es, casss, rs, mrs, rsqs, qs, ps = [], [], [], [], [], [], [], [], [], [], []
 
     if args.model == "RB": # Rigid body
         if method == "implicit":
@@ -60,7 +60,6 @@ def simulate(args, method = "normal"): #simulate with args given below
                 raise Exception("Unknown scheme.")
         else:
             raise Exception("Unknown method.")
-
     elif args.model == "HT": # Heavy top
         if method == "implicit":
             raise Exception("Implicit solver not yet implemented for HT.")
@@ -176,10 +175,19 @@ def simulate(args, method = "normal"): #simulate with args given below
                 #solver = Particle3DCN(args.M, args.dt, args.alpha, args.init_rx, args.init_ry, args.init_rz, args.init_mx,args.init_my,args.init_mz)
         else:
             raise Exception("Unknown method.")
-
+    elif args.model == "CANN":
+        if method == "implicit":
+            raise Exception("Not implemented error")
+        elif method == "soft":
+            solver = GeneralNeural(args.dt, args.init_q, args.init_p, scheme = "FE", method = "soft", name =  args.folder_name)
+        elif method == "without":
+            solver = GeneralNeural(args.dt, args.init_q, args.init_p, scheme = "FE", method = "without", name =  args.folder_name)
+        elif method =="normal":
+            solver = Cannonical(args.dt, args.init_q, args.init_p, args.H)           
+        
     #Timesteps
     dt = args.dt
-
+    m, r = 0, 0
     #Preparing files for output
     if args.model == "RB":
         m = np.array([args.init_mx,args.init_my,args.init_mz])
@@ -209,6 +217,14 @@ def simulate(args, method = "normal"): #simulate with args given below
         m = np.array([args.init_mx, args.init_rx,args.init_ry, args.init_rz])
         Ls.append(solver.get_L(m))
         Es.append(solver.get_E(m))
+    elif args.model == "CANN":
+        q = np.array(args.init_q)
+        p = np.array(args.init_p)
+        z = np.hstack((q,p))
+        Ls.append(solver.get_L(z))
+        Es.append(solver.get_E(z))
+        qs.append(q)
+        ps.append(p)
     else:
         raise Exception("Unknown model.")
 
@@ -237,6 +253,9 @@ def simulate(args, method = "normal"): #simulate with args given below
             (m, r) = solver.m_new()
         elif args.model == "P3D" or args.model == "K3D" or args.model=="P2D":
             (r, m) = solver.m_new()
+        elif args.model == "CANN":
+            (q,p) = solver.z_new()
+
 
         if i % store_each == 0:
             t = dt * i
@@ -264,6 +283,12 @@ def simulate(args, method = "normal"): #simulate with args given below
                 Es.append(solver.get_E(mr))
                 rs.append(np.array(r, copy=True))
                 rsqs.append(np.dot(r,r))
+            elif args.model == "CANN":
+                z = np.concatenate((q,p))
+                Ls.append(solver.get_L(z))
+                Es.append(solver.get_E(z))
+                qs.append(q)
+                ps.append(p)
             if method == "implicit":
                 casss.append(solver.get_cass(m))
             else:
@@ -282,6 +307,11 @@ def simulate(args, method = "normal"): #simulate with args given below
     Ls = np.array(Ls[1:])
     Es = np.array(Es[1:]).reshape(-1,1)
     casss = np.array(casss[1:]).reshape(-1,1)
+
+    qs_old = np.array(qs[:-1])
+    qs = np.array(qs[1:])
+    ps_old = np.array(ps[:-1])
+    ps = np.array(ps[1:])
 
     rs_old = np.array(rs[:-1])
     rs = np.array(rs[1:])
@@ -307,6 +337,10 @@ def simulate(args, method = "normal"): #simulate with args given below
         elif args.model =="Sh":
             data = np.hstack((ts, ms_old, ms, Ls[:,0,1].reshape(-1,1), Ls[:,0,2].reshape(-1,1), Ls[:,0,3].reshape(-1,1), Ls[:,1,2].reshape(-1,1), Ls[:,1,3].reshape(-1,1), Ls[:,2,3].reshape(-1,1), Es))
             return pd.DataFrame(data, columns = ["time", "old_u", "old_x", "old_y", "old_z", "u", "x",  "y", "z", "L_01", "L_02", "L_03", "L_12", "L_13", "L_23", "E"])#return results of simulation
+        elif args.model =="CANN":
+            data = np.hstack((ts, qs_old, ps_old, qs, ps, Es))
+            cols = ["time"] + [f"old_q{i}" for i in range(1, solver.dim+1)] + [f"old_p{i}" for i in range(1, solver.dim+1)] + [f"q{i}" for i in range(1, solver.dim+1)] + [f"p{i}" for i in range(1, solver.dim+1)]+["E"]
+            return pd.DataFrame(data, columns = cols)#return results of simulation
 
 #def get_file_name(args):
 #    if args.generate:
@@ -348,12 +382,15 @@ if __name__ == "__main__":
     parser.add_argument("--soft", default=False, action="store_true", help="Use penalty in loss function to learn Jacobi identity. Otherwise it is implicitly valid")
     parser.add_argument("--without", default=False, action="store_true", help="Trained without Jacobi.")
     parser.add_argument("--plot", default=False, action="store_true", help="Plot results")
-    parser.add_argument("--model", default="RB", type=str, help="Model: RB, HT, P3D, or K3D")
+    parser.add_argument("--model", default="RB", type=str, help="Model: RB, HT, P3D, K3D or CANN")
     parser.add_argument("--Mgl", default=9.81*sqrt(3)/2, type=float, help="M*g*l")
     parser.add_argument("--init_rx", default=0.0, type=float, help="Initial r, x component")
     parser.add_argument("--init_ry", default=-0.195090, type=float, help="Initial r, y component")
     parser.add_argument("--init_rz", default=0.980785, type=float, help="Initial r, z component")
     parser.add_argument("--M", default=10.5, type=float, help="mass")
+    parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float, default=[0])
+    parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False, type=float, default=[1])
+    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
     
 
     args = parser.parse_args([] if "__file__" not in globals() else None)

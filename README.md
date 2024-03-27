@@ -2,14 +2,15 @@
 
 ## Typical workflow (samples initial conditions, simulates, learns, simulates learned, and compares):
 
-    python3 comparison.py --generate --steps=100 --implicit --soft --without --model=RB --folder_name=TEST
+    python comparison.py --generate --steps=100 --implicit --soft --without --model=RB --folder_name=TEST
     python3 plot_compare.py --plot_RB_errors --GT --without --implicit --soft --folder_name=TEST
 
-## It is also possible to compare just training an validation losses 
+## It is also possible to compare just training an validation losses
 
     python3 compare_train_errors.py
 
 ## Alternatively, you can do that step by step
+
 First generate dataset for training with:
 
     python3 simulate.py --generate --steps=50000 --model=RB
@@ -22,7 +23,7 @@ Then we train implicit and soft networks:
 
 (or implicit or soft).
 
-Then choose a different initial conditions and see how well our network fits the evolution. If the initial condition is too different we will not get a good fit. If it is the same we will fit perfectly. 
+Then choose a different initial conditions and see how well our network fits the evolution. If the initial condition is too different we will not get a good fit. If it is the same we will fit perfectly.
 
     python3 simulate.py --steps=500 --generate
     python3 simulate.py --steps=500 --implicit
@@ -33,9 +34,9 @@ Then choose a different initial conditions and see how well our network fits the
 
     python3 plot_compare.py --plot_m --plot_E --plot_L
 
-Check training error and errors while learning. 
+Check training error and errors while learning.
 
-## Typical arguments used for the training can be found in folder 
+## Typical arguments used for the training can be found in folder
 
     typical_args
 

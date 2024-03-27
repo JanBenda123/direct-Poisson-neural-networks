@@ -6,8 +6,8 @@ import numpy as np
 
 import torch
 
-from models.Model import EnergyNet, TensorNet, JacVectorNet
-from learn import DEFAULT_folder_name
+#from models.Model import EnergyNet, TensorNet, JacVectorNet
+from learner_config import  DEFAULT_folder_name
 
 class RigidBody(object): #Parent Rigid body class
     def __init__(self, Ix, Iy, Iz, d2E, mx, my, mz, dt, alpha, T=100, verbose = False):
@@ -1676,6 +1676,215 @@ class ShivamoggiNeural(ShivamoggiIMR):
             hamiltonian = np.matmul(L, E_z.detach().numpy())
         else:
             raise Exception("Implicit not implemented for HT yet.")
+            J, cass = self.J_net(z_tensor)
+            J = J.detach().numpy()
+            hamiltonian = np.cross(J, E_z.detach().numpy())
+        return hamiltonian
+
+    def f(self, mNew):#defines the function f zero of which is sought
+        """
+        The function `f` calculates the difference between the old and new values of `m` and adds the
+        product of the time step and the derivative of `z` to it.
+        
+        :param mNew: The parameter `mNew` represents the new values of `m` that are passed to the function `f`
+        :return: the difference between the old values and the new values, plus the product of the time step and the derivative of the neural network with respect to the midpoint of the old and new values.
+        """
+        mOld = np.array([self.u, self.x[0], self.x[1], self.x[2]])
+        m_mid = 0.5*(np.array(mNew)+mOld)
+
+        zd = self.neural_zdot(m_mid)
+        res = np.array(mOld) - np.array(mNew) + self.dt*zd
+        return res
+
+    def get_cass(self, z):
+        """
+        The function `get_cass` takes in a parameter `z`, converts it to a tensor, passes it through a
+        neural network `J_net`, and returns the output `cass` as a numpy array.
+        
+        :param z: The parameter `z` is a numerical input that is used as an input to the neural network. It is converted to a tensor using `torch.tensor` with a data type of `torch.float32`. The `requires_grad=True` argument indicates that gradients will be computed for this tensor during backprop
+        :return: the value of `cass` as a NumPy array.
+        """
+        z_tensor = torch.tensor(z, dtype=torch.float32, requires_grad=True)
+        J, cass = self.J_net(z_tensor)
+        return cass.detach().numpy()
+
+    def get_L(self, z):
+        """
+        The function `get_L` takes a tensor `z`, passes it through a neural network `L_net`, and returns the
+        output `L` as a numpy array.
+        
+        :param z: The parameter `z` is a numerical input that is used as an input to the `L_net` neural network. It is converted to a tensor using `torch.tensor` with a data type of `torch.float32`. The `requires_grad=True` argument indicates that gradients will be computed with respect
+        :return: the value of L, which is obtained by passing the input z through the L_net neural network and converting the result to a numpy array.
+        """
+        z_tensor = torch.tensor(z, dtype=torch.float32, requires_grad=True)
+        L = self.L_net(z_tensor).detach().numpy()[0]
+        return L
+
+    def get_E(self, z):
+        """
+        The function `get_E` takes a parameter `z`, converts it to a tensor, passes it through a neural
+        network called `energy_net`, and returns the resulting energy value.
+        
+        :param z: The parameter `z` is a numerical input that is used as an input to the `energy_net` neural network. It is converted to a tensor using `torch.tensor` and is set to have a data type of `torch.float32`. The `requires_grad=True` argument indicates that gradients will
+        :return: the value of E, which is the output of the energy_net model when given the input z.
+        """
+        z_tensor = torch.tensor(z, dtype=torch.float32, requires_grad=True)
+        E = self.energy_net(z_tensor).detach().numpy()[0]
+        return E
+
+    def m_new(self): #return new r and p
+        """
+        The function `m_new` returns the values of `u`, `x[0]`, `x[1]`, and `x[2]` after solving the
+        equation `f` using the `fsolve` function.
+
+        :return: a tuple containing the values of self.u, self.x[0], self.x[1], and self.x[2].
+        """
+        #calculate
+        (self.u, self.x[0], self.x[1], self.x[2])= fsolve(self.f, (self.u, self.x[0], self.x[1], self.x[2]))
+
+        return (self.u, self.x[0], self.x[1], self.x[2])
+
+
+class Cannonical(object):
+    def __init__(self, dt, q_init, p_init, hamiltonian="1DHO", scheme = "FE"):
+        self.q = np.array(q_init)
+        self.p = np.array(p_init)
+        self.dt = dt
+
+
+        self.H, self.dim  = Cannonical.get_ham(hamiltonian)
+        
+
+        if len(q_init) == len(p_init) and self.dim == len(p_init) :
+            self.L = np.vstack([np.hstack([np.zeros((self.dim,self.dim)),np.eye(self.dim)]),np.hstack([-np.eye(self.dim), np.zeros((self.dim,self.dim))])])
+        else:
+            raise Exception(f"Wrong sizes of p and q provided. Expected {self.dim} for {hamiltonian}, got {len(q_init)} for q and {len(p_init)} for p")
+        
+
+        self.scheme = scheme
+        self.schemes = {"FE": self.z_new_FE}
+    def get_E(self,z):
+        (q,p) = self.unpack_z(z)
+        return self.H(q,p)
+
+    def get_ham(hamiltonian):
+        ham_list = {"1DHO": (lambda p,q: 1/2*0.3*p[0]**2+1/2*q[0]**2, 1)}
+        if hamiltonian not in ham_list.keys():
+            raise Exception(f"Unknown hamiltonian identifier {hamiltonian}. Use one of the following: {ham_list.keys}")
+        return ham_list[hamiltonian]
+
+    def unpack_z(self,z):
+        q = z[:self.dim]
+        p =z [self.dim:]
+
+        return (q,p)
+
+    def get_grad_E(self,z):
+        
+        z = torch.tensor(z, requires_grad=True)
+
+        output = self.get_E(z)
+        output.backward()
+        z = self.tensor_to_numpy(z.grad)
+
+        return self.unpack_z(z)
+    
+    def get_z_dot(self,z):
+        
+        return self.get_L(z) @ self.get_grad_E(z) 
+    
+    def z_new_FE(self):
+        qp = np.concatenate((self.q, self.p))
+        new_qp = qp+ self.dt * self.get_z_dot(qp) 
+        return (new_qp[:self.dim],new_qp[self.dim:])
+
+    def get_L(self, z):
+        """
+        The function `get_L` returns a 4x4 numpy array representing a transformation matrix.
+        
+        :param m: The parameter `m` is a tuple with three elements representing the x, y, and z coordinates respectively. The default value for `m` is (0.0, 0.0, 0.0)
+        :return: a 4x4 numpy array called L.
+        """
+        return self.L
+    def tensor_to_numpy(self,tensor):
+        tensor = tensor.detach().cpu()
+        if tensor.numel() == 1:
+
+            return np.array([tensor.item()])
+        else:
+            return tensor.numpy()
+
+    def z_new(self): #return new r and p
+        """
+        The function `m_new` returns new values for `r` and `p` by solving a system of equations using the `fsolve` function.
+        :return: a tuple containing two tuples. The first tuple contains the values of `rx` and `ry`, and the second tuple contains the values of `px` and `py`.
+        """
+        (self.q,self.p) = self.schemes[self.scheme]()
+        return (self.q,self.p)
+        
+class GeneralNeural(Cannonical):
+    def __init__(self, dt, q_init, p_init, scheme = "FE", method = "without", name = DEFAULT_folder_name):
+        """
+        The function initializes a ShivamoggiNeural object with specified parameters and loads the
+        appropriate neural network models based on the chosen method.
+        
+        :param M: The parameter M represents the mass of the system. It is a scalar value
+        :param dt: The parameter `dt` represents the time step size in the simulation. It determines how much time elapses between each iteration of the simulation
+        :param alpha: The parameter "alpha" is a value used in the ShivamoggiNeural class initialization. It
+        is a scalar value that represents a coefficient used in the calculations performed by the class. The specific purpose and meaning of this parameter may depend on the context and implementation of the Shivamoggi equations
+        :param init_rx: The parameter `init_rx` is the initial x-coordinate of the position vector. It represents the starting position of the object in the x-direction
+        :param init_ry: The parameter `init_ry` represents the initial value for the y-coordinate of the position vector. It is used in the initialization of the `ShivamoggiNeural` class
+        :param init_rz: The parameter `init_rz` represents the initial value for the z-coordinate of the position vector. It is used in the initialization of the `ShivamoggiNeural` class
+        :param init_u: The parameter `init_u` represents the initial value of the variable `u` in the ShivamoggiNeural class. It is used to initialize the state of the system
+        :param method: The "method" parameter in the code snippet refers to the method used for solving the Shivamoggi equations. There are three possible options:, defaults to without (optional)
+        :param name: The `name` parameter is a string that represents the folder name where the saved models are located. It is used to load the pre-trained neural network models for energy and L (Lagrangian) calculations. The `name` parameter is used to construct the file paths for loading the models
+        """
+        super().__init__(dt, q_init, p_init, scheme=scheme)
+        # Load network
+        self.method = method
+        if method == "soft":
+            self.energy_net = torch.load(name+'/saved_models/soft_jacobi_energy')
+            self.energy_net.eval()   
+            self.L_net = torch.load(name+'/saved_models/soft_jacobi_L')
+            self.L_net.eval()
+        elif method == "without":
+            self.energy_net = torch.load(name+'/saved_models/without_jacobi_energy')
+            self.energy_net.eval()   
+            self.L_net = torch.load(name+'/saved_models/without_jacobi_L')
+            self.L_net.eval()
+        elif method == "implicit":
+            raise Exception("Implicit solver not yet implemented for Cannonical.")
+            self.energy_net = torch.load(name+'/saved_models/implicit_jacobi_energy')
+            self.energy_net.eval()
+            self.J_net = torch.load(name+'/saved_models/implicit_jacobi_J')
+            self.J_net.eval()
+            def L_net(z):
+                L = -1*torch.tensor([[[0.0, z[2], -z[1]],[-z[2], 0.0, z[0]],[z[1], -z[0], 0.0]]])
+                return L
+            self.L_net = L_net
+        else:
+            raise Exception("Unkonown method: ", method)
+
+    # Get gradient of energy from NN
+    def neural_zdot(self, z):
+        """
+        The function `neural_zdot` calculates the Hamiltonian of a neural network given a set of input
+        values.
+        
+        :param z: The parameter `z` is a tensor representing the input to the neural network. It is of type `torch.Tensor` and has a shape determined by the dimensions of the input data
+        :return: The function `neural_zdot` returns the variable `hamiltonian`.
+        """
+        z_tensor = torch.tensor(z, dtype=torch.float32, requires_grad=True)
+        En = self.energy_net(z_tensor)
+
+        E_z = torch.autograd.grad(En.sum(), z_tensor, only_inputs=True)[0]
+        E_z = torch.flatten(E_z)
+
+        if self.method == "soft" or self.method == "without":
+            L = self.L_net(z_tensor).detach().numpy()[0]
+            hamiltonian = np.matmul(L, E_z.detach().numpy())
+        else:
+            raise Exception("Implicit not implemented for Cannonical yet.")
             J, cass = self.J_net(z_tensor)
             J = J.detach().numpy()
             hamiltonian = np.cross(J, E_z.detach().numpy())

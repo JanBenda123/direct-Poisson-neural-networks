@@ -1746,27 +1746,30 @@ class ShivamoggiNeural(ShivamoggiIMR):
 
 
 class Cannonical(object):
-    def __init__(self, dt, init_q, init_p, hamiltonian="1DHO", scheme = "FE"):
+    def __init__(self, dt, init_q, init_p, hamiltonian="1DHO", scheme = "FE", is_neural = False):
         self.z = np.hstack((np.array(init_q),np.array(init_p)))
         self.dt =dt
 
-        
 
-
-        self.get_E, self.dim  = Cannonical.get_ham(hamiltonian)
+        get_E, self.dim  = Cannonical.get_ham(hamiltonian)
+        if not is_neural:
+            self.get_E = get_E
 
         if len(init_q) == len(init_p) and self.dim == len(init_p) :
             self.L = np.vstack([np.hstack([np.zeros((self.dim,self.dim)),np.eye(self.dim)]),np.hstack([-np.eye(self.dim), np.zeros((self.dim,self.dim))])])
         else:
             raise Exception(f"Wrong sizes of p and q provided. Expected {self.dim} for {hamiltonian}, got {len(init_q)} for q and {len(init_p)} for p")
-        
-
+    
         self.scheme = scheme
         self.schemes = {"FE": self.z_new_FE}
+
+
     def get_ham(hamiltonian):
-        ham_list = {"1DHO": (lambda z: 1/2*0.3*z[1]**2+1/2*z[0]**2, 1)}
+        ham_list = {"1DHO": (lambda z: 1/2*0.3*z[1]**2+1/2*z[0]**2, 1),
+                    "1DPEN": (lambda z: 1/2 *z[1]**2-cos(z[0]), 1),
+                    "FALL": (lambda z: 1/2 *z[1]**2+10*z[0], 1)}
         if hamiltonian not in ham_list.keys():
-            raise Exception(f"Unknown hamiltonian identifier {hamiltonian}. Use one of the following: {ham_list.keys}")
+            raise Exception(f"Unknown hamiltonian identifier {hamiltonian}. Use one of the following: {ham_list.keys()}")
         return ham_list[hamiltonian]
     def get_grad_E(self,z):
         z = torch.tensor(z, requires_grad=True)
@@ -1782,8 +1785,8 @@ class Cannonical(object):
     def get_z_dot(self,z):
         return self.get_L(z) @ self.get_grad_E(z) 
     
-    def z_new_FE(self):
-        new_z = self.z+ self.dt * self.get_z_dot(self.z) 
+    def z_new_FE(self,get_z_dot):
+        new_z = self.z+ self.dt * get_z_dot(self.z) 
         return new_z
 
     def get_L(self, z):
@@ -1819,7 +1822,7 @@ class Cannonical(object):
         The function `m_new` returns new values for `r` and `p` by solving a system of equations using the `fsolve` function.
         :return: a tuple containing two tuples. The first tuple contains the values of `rx` and `ry`, and the second tuple contains the values of `px` and `py`.
         """
-        self.z = self.schemes[self.scheme]()
+        self.z = self.schemes[self.scheme](self.get_z_dot)
         return self.z
         
 
@@ -1840,7 +1843,7 @@ class GeneralNeural(Cannonical):
         :param method: The "method" parameter in the code snippet refers to the method used for solving the Shivamoggi equations. There are three possible options:, defaults to without (optional)
         :param name: The `name` parameter is a string that represents the folder name where the saved models are located. It is used to load the pre-trained neural network models for energy and L (Lagrangian) calculations. The `name` parameter is used to construct the file paths for loading the models
         """
-        super().__init__( dt, init_q, init_p, hamiltonian="1DHO", scheme = scheme )
+        super().__init__( dt, init_q, init_p, hamiltonian="1DHO", scheme = scheme , is_neural=True)
         # Load network
         self.method = method
         if method == "soft":
@@ -1885,7 +1888,7 @@ class GeneralNeural(Cannonical):
             L = self.L_net(z_tensor).detach().numpy()[0]
             hamiltonian = np.matmul(L, E_z.detach().numpy())
         else:
-            raise Exception("Implicit not implemented for HT yet.")
+            raise Exception("Implicit not implemented for CANN yet.")
             J, cass = self.J_net(z_tensor)
             J = J.detach().numpy()
             hamiltonian = np.cross(J, E_z.detach().numpy())
@@ -1928,6 +1931,6 @@ class GeneralNeural(Cannonical):
         E = self.energy_net(z_tensor).detach().numpy()[0]
         return E
 
-    def m_new(self): 
-        self.z = self.schemes[self.method]()
+    def z_new(self): 
+        self.z = self.schemes[self.scheme](self.neural_zdot)
         return self.z

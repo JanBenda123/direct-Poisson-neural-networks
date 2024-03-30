@@ -489,6 +489,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot_steps", default=None, type=int, help="Steps to plot")
     parser.add_argument("--plot_every", default=1, type=int, help="Every nth point to plot")
     parser.add_argument("--plot_m", default=False, action="store_true", help="Plot m.")
+
     parser.add_argument("--plot_E", default=False, action="store_true",help="Plot energy.")
     parser.add_argument("--plot_L", default=False, action="store_true", help="Plot Poisson bivector.")
     parser.add_argument("--plot_msq", default=False, action="store_true", help="Plot m squared.")
@@ -532,6 +533,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot_spectrum_errors", default=False, action="store_true", help="Plot spectrum-of-L errors.")
     parser.add_argument("--plot_compatibility", default=False, action="store_true", help="Plot L compatibility errors")
 
+    parser.add_argument("--plot_z", default=False, action="store_true", help="Plot z for CANN")
     parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float , default=[0])
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False,type=float , default=[1])
     parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
@@ -579,6 +581,10 @@ if __name__ == "__main__":
 
     if args.plot_m:
         plot_field(fields = ["mx", "my", "mz"])
+
+    if args.plot_z:
+        plot_first("q1")
+        #plot_field(fields = ["q1", "p1"])
 
     if args.plot_field != "None":
         plot_field(fields = [args.plot_field])
@@ -1453,6 +1459,8 @@ if __name__ == "__main__":
             plot_field(fields=["mz", "rz", "E", "m.r", "r*r"])
         elif args.model == "P3D":
             plot_field(fields=["rx", "mx", "E", "sqm"])
+        elif args.model == "CANN":
+            plot_field(fields=["q1", "p1", "E"])
 
     # The above code is generating and displaying 3D plots of energy values for different models. It first
     # checks if the `args.plot_Es` flag is set to True. If it is, it retrieves the learned models using

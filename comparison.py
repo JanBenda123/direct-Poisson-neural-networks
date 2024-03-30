@@ -11,6 +11,7 @@ from math import sqrt
 from learn import *
 import multiprocessing as mp
 from models.RigidBody import Cannonical
+import json
 
 
 def norm(x, y, z):
@@ -342,8 +343,11 @@ if __name__ == "__main__":
     parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float , default=[0])
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False,type=float , default=[1])
     parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
+    parser.add_argument('--comment',  type=str, help='Adds a note to the run, can be viewed in args.json file', required=False, default="") 
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
+
+   
 
     if args.dt == 0.0: #automatic
         args.dt = resolve_automatic_dt(args)
@@ -356,12 +360,10 @@ if __name__ == "__main__":
     else:
         general_dim = None
 
-    #save args to file
-    original_stdout = sys.stdout
-    with open(args.folder_name+'/args.txt', 'w') as f:
-        sys.stdout = f # Change the standard output to the file we created.
+    #save args to file - .json is more readable
+    with open(args.folder_name+'/args.json', 'w') as json_file:
+        json.dump(vars(args), json_file, indent=4)
         print(args)
-        sys.stdout = original_stdout
 
     if args.generate:
         print("-------------------------------")

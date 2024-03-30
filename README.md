@@ -3,7 +3,7 @@
 ## Typical workflow (samples initial conditions, simulates, learns, simulates learned, and compares):
 
     python comparison.py --generate --steps=100 --implicit --soft --without --model=RB --folder_name=TEST
-    python3 plot_compare.py --plot_RB_errors --GT --without --implicit --soft --folder_name=TEST
+    python plot_compare.py --plot_RB_errors --GT --without --implicit --soft --folder_name=TEST
 
 ## It is also possible to compare just training an validation losses
 

@@ -1755,7 +1755,7 @@ class Cannonical(object):
         if not is_neural:
             self.get_E = get_E
 
-        if len(init_q) == len(init_p) and self.dim == len(init_p) :
+        if (len(init_q) == len(init_p) and self.dim == len(init_p)) or is_neural:
             self.L = np.vstack([np.hstack([np.zeros((self.dim,self.dim)),np.eye(self.dim)]),np.hstack([-np.eye(self.dim), np.zeros((self.dim,self.dim))])])
         else:
             raise Exception(f"Wrong sizes of p and q provided. Expected {self.dim} for {hamiltonian}, got {len(init_q)} for q and {len(init_p)} for p")
@@ -1767,7 +1767,8 @@ class Cannonical(object):
     def get_ham(hamiltonian):
         ham_list = {"1DHO": (lambda z: 1/2*0.3*z[1]**2+1/2*z[0]**2, 1),
                     "1DPEN": (lambda z: 1/2 *z[1]**2-cos(z[0]), 1),
-                    "FALL": (lambda z: 1/2 *z[1]**2+10*z[0], 1)}
+                    "FALL": (lambda z: 1/2 *z[1]**2+10*z[0], 1),
+                    "2PEN": (lambda z: (z[2]**2+2*z[3]**2-2*z[2]*z[3]*cos(z[0]-z[1]))/(2*(1+sin(z[0]-z[1])**2))-2*cos(z[0])-cos(z[1]), 2)}
         if hamiltonian not in ham_list.keys():
             raise Exception(f"Unknown hamiltonian identifier {hamiltonian}. Use one of the following: {ham_list.keys()}")
         return ham_list[hamiltonian]
@@ -1827,7 +1828,7 @@ class Cannonical(object):
         
 
 class GeneralNeural(Cannonical):
-    def __init__(self, dt, init_q, init_p, scheme = "FE", method = "soft", name =  DEFAULT_folder_name):
+    def __init__(self, dt, init_q, init_p,hamiltonian="1DHO", scheme = "FE", method = "soft", name =  DEFAULT_folder_name):
         """
         The function initializes a ShivamoggiNeural object with specified parameters and loads the
         appropriate neural network models based on the chosen method.
@@ -1843,7 +1844,7 @@ class GeneralNeural(Cannonical):
         :param method: The "method" parameter in the code snippet refers to the method used for solving the Shivamoggi equations. There are three possible options:, defaults to without (optional)
         :param name: The `name` parameter is a string that represents the folder name where the saved models are located. It is used to load the pre-trained neural network models for energy and L (Lagrangian) calculations. The `name` parameter is used to construct the file paths for loading the models
         """
-        super().__init__( dt, init_q, init_p, hamiltonian="1DHO", scheme = scheme , is_neural=True)
+        super().__init__( dt, init_q, init_p, hamiltonian=hamiltonian, scheme = scheme , is_neural=True)
         # Load network
         self.method = method
         if method == "soft":

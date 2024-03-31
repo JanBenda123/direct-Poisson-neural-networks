@@ -212,9 +212,9 @@ def add_plot(ax, x=None,y=None, name=""):
     """
     #ax.scatter(x[::args.plot_every],y[::args.plot_every])
     if x is not None:
-        ax.plot(x, y, lw=0.7, label=name)
+        ax.semilogy(x, y, lw=0.7, label=name)
     else:
-        ax.plot(y, lw=0.7, label=name)    
+        ax.semilogy(y, lw=0.7, label=name)    
 
 def plot_training_errors(args):
     """
@@ -232,14 +232,14 @@ def plot_training_errors(args):
         add_plot(plt, y=train_mov_errors[1:], name="soft train move")
         add_plot(plt, y=validation_mov_errors[1:], name="soft val move")
         plt.legend()
-        plt.show()
+        plt.show() if not args.no_plot else None
 
         validation_reg_errors = df_soft_errors["val_reg"]
         train_reg_errors = df_soft_errors["train_reg"]
         add_plot(plt, y=train_reg_errors[1:], name="soft train Jacobi")
         add_plot(plt, y=validation_reg_errors[1:], name="soft val Jacobi")
         plt.legend()
-        plt.show()
+        plt.show() if not args.no_plot else None
 
     if args.implicit:
         df_implicit_errors = pd.read_csv(name+"/data/errors_implicit.csv")
@@ -248,7 +248,7 @@ def plot_training_errors(args):
         add_plot(plt, y=train_mov_errors[1:], name="impclicit train move")
         add_plot(plt, y=validation_mov_errors[1:], name="implicit val move")
         plt.legend()
-        plt.show()
+        plt.show() if not args.no_plot else None
 
     if args.without:
         df_without_errors = pd.read_csv(name+"/data/errors_without.csv")
@@ -257,7 +257,7 @@ def plot_training_errors(args):
         add_plot(plt, y=train_mov_errors[1:], name="without train move")
         add_plot(plt, y=validation_mov_errors[1:], name="without val move")
         plt.legend()
-        plt.show()
+        plt.show() if not args.no_plot else None
 
 def resolve_automatic_dt(args):
     """
@@ -343,7 +343,8 @@ if __name__ == "__main__":
     parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float , default=[0])
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False,type=float , default=[1])
     parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
-    parser.add_argument('--comment',  type=str, help='Adds a note to the run, can be viewed in args.json file', required=False, default="") 
+    parser.add_argument('--comment',  type=str, help='Adds a note to the run, can be viewed in args.json file', required=False, default="")
+    parser.add_argument('--no_plot',  type=bool, help='Turns off plotting after learning', required=False, default=False) 
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
 
@@ -363,7 +364,6 @@ if __name__ == "__main__":
     #save args to file - .json is more readable
     with open(args.folder_name+'/args.json', 'w') as json_file:
         json.dump(vars(args), json_file, indent=4)
-        print(args)
 
     if args.generate:
         print("-------------------------------")

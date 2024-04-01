@@ -508,7 +508,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot_Casimir", default=False, action="store_true", help="Plot Casimirs.")
     parser.add_argument("--plot_r", default=False, action="store_true", help="Plot r (in HT).")
     parser.add_argument("--plot_dataset", default=False, action="store_true", help="Plot the dataset")
-    parser.add_argument("--model", default="RB", type=str, help="Model: RB or HT.")
+    parser.add_argument("--model", default="CAN", type=str, help="Model: CANN RB or HT.")
     parser.add_argument("--plot_det", default = False, action="store_true", help="Plot det of L.")
     parser.add_argument("--plot_det_log", default = False, action="store_true", help="Plot log det of L.")
     parser.add_argument("--implicit", default = False, action="store_true", help="Implicit")

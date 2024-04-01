@@ -440,12 +440,16 @@ def check_folder(name):
     name = os.getcwd()+"/"+name
     data_name = name+"/data"
     models_name = name+"/saved_models"
+    graphics_name = name+"/graphics"
     if not os.path.exists(data_name):
         print("Making folder: "+data_name)
         os.makedirs(data_name)
     if not os.path.exists(models_name):
         print("Making folder: "+models_name)
         os.makedirs(models_name)
+    if not os.path.exists(graphics_name):
+        print("Making folder: "+graphics_name)
+        os.makedirs(graphics_name)
 
 # The above code is a Python script that defines a command-line interface using the `argparse` module.
 # It allows the user to specify various parameters and options when running the script.

@@ -12,6 +12,7 @@ from learn import *
 import multiprocessing as mp
 from models.RigidBody import Cannonical
 import json
+import time
 
 
 def norm(x, y, z):
@@ -201,7 +202,7 @@ def generate_trajectories(args):
             simulate.save_simulation(total_without_data_frame, args.folder_name+"/data/learned_without.xyz") 
         simulate.save_simulation(total_generalization_data_frame, args.folder_name+"/data/generalization.xyz") 
 
-def add_plot(ax, x=None,y=None, name=""):
+def add_plot(ax, x=None,y=None, name="",semilogy = True):
     """
     The function `add_plot` adds a line plot to a given matplotlib axes object, with the option to specify x and y data and a label for the plot.
     
@@ -211,10 +212,16 @@ def add_plot(ax, x=None,y=None, name=""):
     :param name: The name parameter is a string that represents the label for the plot. It is used to identify the plot in the legend of the graph
     """
     #ax.scatter(x[::args.plot_every],y[::args.plot_every])
-    if x is not None:
-        ax.semilogy(x, y, lw=0.7, label=name)
+    if semilogy:
+        if x is not None:
+            ax.semilogy(x, y, lw=0.7, label=name)
+        else:
+            ax.semilogy(y, lw=0.7, label=name)
     else:
-        ax.semilogy(y, lw=0.7, label=name)    
+        if x is not None:
+            ax.plot(x, y, lw=0.7, label=name)
+        else:
+            ax.plot(y, lw=0.7, label=name)    
 
 def plot_training_errors(args):
     """
@@ -229,35 +236,39 @@ def plot_training_errors(args):
         df_soft_errors = pd.read_csv(name+"/data/errors_soft.csv")
         train_mov_errors = df_soft_errors["train_mov"]
         validation_mov_errors = df_soft_errors["val_mov"]
+        fig, ax = plt.subplots()
         add_plot(plt, y=train_mov_errors[1:], name="soft train move")
         add_plot(plt, y=validation_mov_errors[1:], name="soft val move")
         plt.legend()
-        plt.show() if not args.no_plot else None
+        plt.show() if not args.no_plot else plt.savefig(name+"/graphics/soft_move.png"); plt.close(fig)
 
         validation_reg_errors = df_soft_errors["val_reg"]
         train_reg_errors = df_soft_errors["train_reg"]
+        fig, ax = plt.subplots()
         add_plot(plt, y=train_reg_errors[1:], name="soft train Jacobi")
-        add_plot(plt, y=validation_reg_errors[1:], name="soft val Jacobi")
+        add_plot(plt, y=validation_reg_errors[1:], name="soft val Jacobi", semilogy=False)
         plt.legend()
-        plt.show() if not args.no_plot else None
+        plt.show() if not args.no_plot else plt.savefig(name+"/graphics/soft_jacobi.png"); plt.close(fig)
 
     if args.implicit:
         df_implicit_errors = pd.read_csv(name+"/data/errors_implicit.csv")
         train_mov_errors = df_implicit_errors["train_mov"]
         validation_mov_errors = df_implicit_errors["val_mov"]
+        fig, ax = plt.subplots()
         add_plot(plt, y=train_mov_errors[1:], name="impclicit train move")
         add_plot(plt, y=validation_mov_errors[1:], name="implicit val move")
         plt.legend()
-        plt.show() if not args.no_plot else None
+        plt.show() if not args.no_plot else plt.savefig(name+"/graphics/implicit_move.png"); plt.close(fig)
 
     if args.without:
         df_without_errors = pd.read_csv(name+"/data/errors_without.csv")
         train_mov_errors = df_without_errors["train_mov"]
         validation_mov_errors = df_without_errors["val_mov"]
+        fig, ax = plt.subplots()
         add_plot(plt, y=train_mov_errors[1:], name="without train move")
         add_plot(plt, y=validation_mov_errors[1:], name="without val move")
         plt.legend()
-        plt.show() if not args.no_plot else None
+        plt.show() if not args.no_plot else plt.savefig(name+"/graphics/without_move.png"); plt.close(fig)
 
 def resolve_automatic_dt(args):
     """
@@ -292,7 +303,25 @@ def resolve_automatic_dt(args):
     dt = 0.01 * 2*math.pi/omega
     print("Setting dt = ", dt)
     return dt
-        
+
+class Logger:
+    def __init__(self,name) -> None:
+        self.start_time = time.time()
+        self.timestamps = open(name+'/timestamps.txt', 'w')
+        self.last_event = self.start_time
+        print("Time since start | Time since last log |Event name",file=self.timestamps)
+    def format_elapsed_time(self,seconds):
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+    
+    def log(self, event_name):
+        t = time.time()
+        print(self.format_elapsed_time(t-self.start_time)+" "+self.format_elapsed_time(t-self.last_event)+ " " + event_name,file=self.timestamps)
+        self.last_event = t
+
+    def close(self):
+        self.timestamps.close()
 
 # The above code is a Python script that performs a comparison between different numerical schemes for
 # a given model. It takes command line arguments to specify the parameters of the simulation, such as
@@ -344,7 +373,7 @@ if __name__ == "__main__":
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False,type=float , default=[1])
     parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
     parser.add_argument('--comment',  type=str, help='Adds a note to the run, can be viewed in args.json file', required=False, default="")
-    parser.add_argument('--no_plot',  type=bool, help='Turns off plotting after learning', required=False, default=False) 
+    parser.add_argument('--no_plot', help='Turns off plotting after learning',action="store_true" , default=False) 
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
 
@@ -355,12 +384,11 @@ if __name__ == "__main__":
 
     check_folder(args.folder_name) #check whether the folders data and saved_models exist, or create them
 
-
     if args.model == "CANN":
         _ , general_dim = Cannonical.get_ham(args.H)
     else:
         general_dim = None
-
+    logger = Logger(args.folder_name)
     #save args to file - .json is more readable
     with open(args.folder_name+'/args.json', 'w') as json_file:
         json.dump(vars(args), json_file, indent=4)
@@ -371,6 +399,7 @@ if __name__ == "__main__":
         print("-------------------------------")
         generate_trajectories(args)
         args.generate = False
+        logger.log("Trajectories generated")
 
     dissipative = False if (args.zeta == 0) else True
     if args.implicit:
@@ -382,6 +411,7 @@ if __name__ == "__main__":
         else:
             learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim)
         learner.learn(method = "implicit", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor)
+        logger.log("Implicit Jacobi trained")
     if args.soft:
         print("-------------------------------")
         print("Learning soft Jacobi.")    
@@ -391,6 +421,7 @@ if __name__ == "__main__":
         else:
             learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim)
         learner.learn(method = "soft", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor, jac_prefactor = args.jac_prefactor)
+        logger.log("Soft Jacobi trained")
     if args.without:
         print("-------------------------------")
         print("Learning without Jacobi.")    
@@ -400,8 +431,10 @@ if __name__ == "__main__":
         else:
             learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim)
         learner.learn(method = "without", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor)
+        logger.log("Without Jacobi trained")
     if not args.no_show:
         plot_training_errors(args)
 
     generate_trajectories(args)  
-    
+    logger.log("Network trajectories generated")
+    logger.close()

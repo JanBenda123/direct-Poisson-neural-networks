@@ -95,7 +95,7 @@ class TensorNet(nn.Module):
         x = F.softplus(x)
         for i in range(self.layers-1):
             x = self.hidden[i](x)
-            x = F.softplus(x)
+            x = F.relu(x)
         data = self.outputDense(x)
         b_n = data.size(0) if data.dim() > 1 else 1
         #print("b_n = ", b_n)

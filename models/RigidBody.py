@@ -1765,10 +1765,12 @@ class Cannonical(object):
 
 
     def get_ham(hamiltonian):
-        ham_list = {"1DHO": (lambda z: 1/2*0.3*z[1]**2+1/2*z[0]**2, 1),
-                    "1DPEN": (lambda z: 1/2 *z[1]**2-cos(z[0]), 1),
-                    "FALL": (lambda z: 1/2 *z[1]**2+10*z[0], 1),
-                    "2PEN": (lambda z: (z[2]**2+2*z[3]**2-2*z[2]*z[3]*cos(z[0]-z[1]))/(2*(1+sin(z[0]-z[1])**2))-2*cos(z[0])-cos(z[1]), 2)}
+        # z = (q1,...,q_n,p1,...,p_n)
+        ham_list = {"1DHO": (lambda z: 1/2*0.3*z[1]**2 + 1/2*z[0]**2, 1),
+                    "1DPEN": (lambda z: 1/2*z[1]**2 - cos(z[0]), 1),
+                    "FALL": (lambda z: 1/2*z[1]**2 + 10*z[0], 1),
+                    "2PEN": (lambda z: (z[2]**2 + 2*z[3]**2 - 2*z[2]*z[3]*cos(z[0]-z[1]))/(2*(1 + sin(z[0]-z[1])**2)) - 2*cos(z[0]) - cos(z[1]), 2),
+                    "2DHO": (lambda z: 1/2*1*z[2]**2 + 1/2*1*z[3]**2 + 1/2*0.5*z[0]**2 + 1/2*2*z[1]**2 + 1/2*1*(z[1]-z[0])**2, 2)}
         if hamiltonian not in ham_list.keys():
             raise Exception(f"Unknown hamiltonian identifier {hamiltonian}. Use one of the following: {ham_list.keys()}")
         return ham_list[hamiltonian]

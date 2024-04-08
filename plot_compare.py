@@ -537,6 +537,7 @@ if __name__ == "__main__":
     parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float , default=[0])
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False,type=float , default=[1])
     parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
+    parser.add_argument('--no_plot', help='Turns off plotting after learning',action="store_true" , default=False) 
     #parser.add_argument("--plot_compatibility_hist", default=False, action="store_true", help="Plot L compatibility errors histogram")
 
 

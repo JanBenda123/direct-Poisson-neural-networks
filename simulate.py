@@ -6,6 +6,7 @@ from math import sqrt
 from models.RigidBody import *
 import pandas as pd
 from learn import DEFAULT_folder_name
+import utils
 
 def save_simulation(data_frame, file_name): #save data to file_name
     """
@@ -183,7 +184,7 @@ def simulate(args, method = "normal"): #simulate with args given below
         elif method == "without":
             solver = GeneralNeural(args.dt, args.init_q, args.init_p,hamiltonian=args.H, scheme = "FE", method = "without", name =  args.folder_name)
         elif method =="normal":
-            solver = Cannonical(args.dt, args.init_q, args.init_p, args.H)           
+            solver = Cannonical(args.dt, args.init_q, args.init_p, hamiltonian=args.H)           
         
     #Timesteps
     dt = args.dt
@@ -332,7 +333,7 @@ def simulate(args, method = "normal"): #simulate with args given below
             return pd.DataFrame(data, columns = ["time", "old_u", "old_x", "old_y", "old_z", "u", "x",  "y", "z", "L_01", "L_02", "L_03", "L_12", "L_13", "L_23", "E"])#return results of simulation
         elif args.model =="CANN":
             data = np.hstack((ts, zs_old, zs, Es))
-            cols = ["time"] + [f"old_q{i}" for i in range(1, solver.dim+1)] + [f"old_p{i}" for i in range(1, solver.dim+1)] + [f"q{i}" for i in range(1, solver.dim+1)] + [f"p{i}" for i in range(1, solver.dim+1)]+["E"]
+            cols = ["time"] + [f"old_q{i}" for i in range(1, solver.dim//2+1)] + [f"old_p{i}" for i in range(1, solver.dim//2+1)] + [f"q{i}" for i in range(1, solver.dim//2+1)] + [f"p{i}" for i in range(1, solver.dim//2+1)]+["E"]
             return pd.DataFrame(data, columns = cols)#return results of simulation
 
 #def get_file_name(args):
@@ -384,10 +385,11 @@ if __name__ == "__main__":
     parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float, default=[0])
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False, type=float, default=[1])
     parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
-    
+    parser.add_argument("--folder_name", default=DEFAULT_folder_name, type=str, help="Folder name")
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
-
+    utils.check_folder(args.folder_name) #check whether the folders data and saved_models exist, or create them
+    
     #checking whether more methods are specified (error), only one is possible
     methods = 0
     if args.generate:

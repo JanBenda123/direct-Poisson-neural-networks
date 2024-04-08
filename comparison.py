@@ -13,6 +13,7 @@ import multiprocessing as mp
 from models.RigidBody import Cannonical
 import json
 import time
+import utils
 
 
 def norm(x, y, z):
@@ -43,6 +44,10 @@ def update_args_init(args):
     sqr = args.init_rx**2 + args.init_ry**2 + args.init_rz**2 #square magnitude of m
     r = math.sqrt(sqr) #magnitude of m
 
+    q,p = np.array(args.init_q,dtype=float) ,np.array(args.init_p,dtype=float)
+    q_norm = np.linalg.norm(q)
+    p_norm = np.linalg.norm(p)
+
     n = 2*m #more than m
     while n >= m:
         mx = m*2*(np.random.rand()-0.5)
@@ -56,6 +61,19 @@ def update_args_init(args):
         ry = r*2*(np.random.rand()-0.5)
         rz = r*2*(np.random.rand()-0.5)
         n = norm(rx, ry, rz)
+    
+
+    half_vector = 0.5 * np.ones(np.shape(args.init_q))
+
+    n = 2*q_norm #more than q
+    while n >= r:
+        q = np.random.random(np.shape(args.init_q))-half_vector
+        q_norm = np.linalg.norm(q)
+
+    n = 2*p_norm #more than p
+    while n >= r:
+        p = np.random.random(np.shape(args.init_p))-half_vector
+        p_norm = np.linalg.norm(p)
 
     result = argparse.Namespace(**vars(args)) #copy args
     result.init_mx = mx
@@ -64,6 +82,8 @@ def update_args_init(args):
     result.init_rx = rx
     result.init_ry = ry
     result.init_rz = rz
+    result.init_q = list(q)
+    result.init_p = list(p)
 
     return result
 
@@ -377,12 +397,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
 
-   
+
 
     if args.dt == 0.0: #automatic
         args.dt = resolve_automatic_dt(args)
 
-    check_folder(args.folder_name) #check whether the folders data and saved_models exist, or create them
+    utils.check_folder(args.folder_name) #check whether the folders data and saved_models exist, or create them
 
     if args.model == "CANN":
         _ , general_dim = Cannonical.get_ham(args.H)

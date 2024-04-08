@@ -1746,7 +1746,7 @@ class ShivamoggiNeural(ShivamoggiIMR):
 
 
 class Cannonical(object):
-    def __init__(self, dt, init_q, init_p, hamiltonian="1DHO", scheme = "FE", is_neural = False):
+    def __init__(self, dt, init_q, init_p, hamiltonian="dfq", scheme = "FE", is_neural = False):
         self.z = np.hstack((np.array(init_q),np.array(init_p)))
         self.dt =dt
 
@@ -1755,10 +1755,10 @@ class Cannonical(object):
         if not is_neural:
             self.get_E = get_E
 
-        if (len(init_q) == len(init_p) and self.dim == len(init_p)) or is_neural:
-            self.L = np.vstack([np.hstack([np.zeros((self.dim,self.dim)),np.eye(self.dim)]),np.hstack([-np.eye(self.dim), np.zeros((self.dim,self.dim))])])
+        if (len(init_q) == len(init_p) and self.dim/2 == len(init_p)) or is_neural:
+            self.L = np.vstack([np.hstack([np.zeros((self.dim//2,self.dim//2)),np.eye(self.dim//2)]),np.hstack([-np.eye(self.dim//2), np.zeros((self.dim//2,self.dim//2))])])
         else:
-            raise Exception(f"Wrong sizes of p and q provided. Expected {self.dim} for {hamiltonian}, got {len(init_q)} for q and {len(init_p)} for p")
+            raise Exception(f"Wrong sizes of p and q provided. Expected {self.dim//2} for {hamiltonian}, got {len(init_q)} for q and {len(init_p)} for p")
     
         self.scheme = scheme
         self.schemes = {"FE": self.z_new_FE}
@@ -1766,11 +1766,11 @@ class Cannonical(object):
 
     def get_ham(hamiltonian):
         # z = (q1,...,q_n,p1,...,p_n)
-        ham_list = {"1DHO": (lambda z: 1/2*0.3*z[1]**2 + 1/2*z[0]**2, 1),
-                    "1DPEN": (lambda z: 1/2*z[1]**2 - cos(z[0]), 1),
-                    "FALL": (lambda z: 1/2*z[1]**2 + 10*z[0], 1),
-                    "2PEN": (lambda z: (z[2]**2 + 2*z[3]**2 - 2*z[2]*z[3]*cos(z[0]-z[1]))/(2*(1 + sin(z[0]-z[1])**2)) - 2*cos(z[0]) - cos(z[1]), 2),
-                    "2DHO": (lambda z: 1/2*1*z[2]**2 + 1/2*1*z[3]**2 + 1/2*0.5*z[0]**2 + 1/2*2*z[1]**2 + 1/2*1*(z[1]-z[0])**2, 2)}
+        ham_list = {"1DHO": (lambda z: 1/2*0.3*z[1]**2 + 1/2*z[0]**2, 2),
+                    "1DPEN": (lambda z: 1/2*z[1]**2 - cos(z[0]), 2),
+                    "FALL": (lambda z: 1/2*z[1]**2 + 10*z[0], 2),
+                    "2PEN": (lambda z: (z[2]**2 + 2*z[3]**2 - 2*z[2]*z[3]*cos(z[0]-z[1]))/(2*(1 + sin(z[0]-z[1])**2)) - 2*cos(z[0]) - cos(z[1]), 4),
+                    "2DHO": (lambda z: 1/2*1*z[2]**2 + 1/2*1*z[3]**2 + 1/2*0.5*z[0]**2 + 1/2*2*z[1]**2 + 1/2*1*(z[1]-z[0])**2, 4)}
         if hamiltonian not in ham_list.keys():
             raise Exception(f"Unknown hamiltonian identifier {hamiltonian}. Use one of the following: {ham_list.keys()}")
         return ham_list[hamiltonian]

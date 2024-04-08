@@ -18,13 +18,14 @@ from TrajectoryDataset import TrajectoryDataset
 
 #declare default values of parameters
 from learner_config import *
+import utils
 
 class Learner(object):
     """
     This is the fundamental class that provides the capability to learn dynamical systems, 
     using various methods of learning (without Jacobi identity, with softly enforced Jacobi, and with implicitly valid Jacobi).
     """
-    def __init__(self, model, batch_size = DEFAULT_batch_size, dt = DEFAULT_dt, neurons = DEFAULT_neurons, layers = DEFAULT_layers, name = DEFAULT_folder_name, cuda = False, dissipative = False, general_dim = None):
+    def __init__(self, model, batch_size = DEFAULT_batch_size, dt = DEFAULT_dt, neurons = DEFAULT_neurons, layers = DEFAULT_layers, name = DEFAULT_folder_name, cuda = False, dissipative = False, general_dim = 2):
         """
         This function initializes a Learner object for a given model, with specified parameters and
         datasets.
@@ -48,7 +49,7 @@ class Learner(object):
 
             dim = 4
         elif model == "CANN":
-            dim = 2 * general_dim # multiplied by 2 to account for p and q
+            dim = general_dim # multiplied by 2 to account for p and q
         else:
             raise Exception("Unknown model "+model)
         print("Generating Learner for model ", model, " with ", dim, " dimensions.")
@@ -429,27 +430,7 @@ class LearnerIMR(Learner):
         return (zn_tensor - zn2_tensor)/self.dt + torch.cross(Jz, E_z, dim=1) 
 
 
-def check_folder(name):
-    """
-    The function `check_folder` checks if the specified folder exists, and if not, creates it along with
-    two subfolders named "data" and "saved_models".
-    
-    :param name: The `name` parameter is the name of the folder that you want to check and create if it doesn't exist
-    """
-    print("Checking folder ", name)
-    name = os.getcwd()+"/"+name
-    data_name = name+"/data"
-    models_name = name+"/saved_models"
-    graphics_name = name+"/graphics"
-    if not os.path.exists(data_name):
-        print("Making folder: "+data_name)
-        os.makedirs(data_name)
-    if not os.path.exists(models_name):
-        print("Making folder: "+models_name)
-        os.makedirs(models_name)
-    if not os.path.exists(graphics_name):
-        print("Making folder: "+graphics_name)
-        os.makedirs(graphics_name)
+
 
 # The above code is a Python script that defines a command-line interface using the `argparse` module.
 # It allows the user to specify various parameters and options when running the script.
@@ -465,11 +446,13 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, help="Model = RB, HT, or P3D.", required = True)
     parser.add_argument("--name", default = DEFAULT_folder_name, type=str, help="Folder name")
     parser.add_argument("--method", default = "without", type=str, help="Method: without, implicit, or soft")
+    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
+    parser.add_argument("--folder_name", default=DEFAULT_folder_name, type=str, help="Folder name")
     #parser.parse_args(['-h'])
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
 
-    check_folder(args.folder_name) #check whether the folders data and saved_models exist, or create them
+    utils.check_folder(args.folder_name) #check whether the folders data and saved_models exist, or create them
 
     learner = Learner(args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name)
     learner.learn(method = args.method, learning_rate = args.learning_rate, epochs = args.epochs, prefactor = args.prefactor)

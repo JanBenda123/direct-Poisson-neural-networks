@@ -26,8 +26,8 @@ class TrajectoryDataset(Dataset):
             self.targets  = np.vstack((dataframe["u"], dataframe["x"], dataframe["y"], dataframe["z"])).transpose()
             self.mid= 0.5*(self.features+self.targets)
         elif model == "CANN":
-            old_df = tuple([dataframe[f"old_q{i}"] for i in range(1,general_dim+1)]+ [dataframe[f"old_p{i}"] for i in range(1,general_dim+1)])
-            df = tuple([dataframe[f"q{i}"] for i in range(1,general_dim+1)]+ [dataframe[f"p{i}"] for i in range(1,general_dim+1)])
+            old_df = tuple([dataframe[f"old_q{i}"] for i in range(1,general_dim//2+1)]+ [dataframe[f"old_p{i}"] for i in range(1,general_dim//2+1)])
+            df = tuple([dataframe[f"q{i}"] for i in range(1,general_dim//2+1)]+ [dataframe[f"p{i}"] for i in range(1,general_dim//2+1)])
             self.features = np.vstack(old_df).transpose()
             self.targets  = np.vstack(df).transpose()
             self.mid= 0.5*(self.features+self.targets)

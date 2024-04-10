@@ -446,7 +446,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, help="Model = RB, HT, or P3D.", required = True)
     parser.add_argument("--name", default = DEFAULT_folder_name, type=str, help="Folder name")
     parser.add_argument("--method", default = "without", type=str, help="Method: without, implicit, or soft")
-    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
+    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="dfq")
     parser.add_argument("--folder_name", default=DEFAULT_folder_name, type=str, help="Folder name")
     #parser.parse_args(['-h'])
 

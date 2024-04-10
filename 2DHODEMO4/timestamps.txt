@@ -1,5 +1,0 @@
-Time since start | Time since last log |Event name
-00:00:26 00:00:26 Trajectories generated
-00:25:33 00:25:07 Soft Jacobi trained
-00:37:09 00:11:35 Without Jacobi trained
-00:40:16 00:03:07 Network trajectories generated

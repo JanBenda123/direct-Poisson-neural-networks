@@ -45,8 +45,7 @@ def update_args_init(args):
     r = math.sqrt(sqr) #magnitude of m
 
     q,p = np.array(args.init_q,dtype=float) ,np.array(args.init_p,dtype=float)
-    q_norm = np.linalg.norm(q)
-    p_norm = np.linalg.norm(p)
+    z_norm = math.sqrt(np.linalg.norm(p)**2 +  np.linalg.norm(q)**2)
 
     n = 2*m #more than m
     while n >= m:
@@ -65,15 +64,15 @@ def update_args_init(args):
 
     half_vector = 0.5 * np.ones(np.shape(args.init_q))
 
-    n = 2*q_norm #more than q
-    while n >= r:
-        q = np.random.random(np.shape(args.init_q))-half_vector
-        q_norm = np.linalg.norm(q)
+    n = 2*z_norm #more than q, need to add 1 (zero initial conditions)
+    # while n >= z_norm:
+    #     q = 2*z_norm*(np.random.random(np.shape(args.init_q))-half_vector)
+    #     p = 2*z_norm*(np.random.random(np.shape(args.init_p))-half_vector)
+    #     z_norm = math.sqrt(np.linalg.norm(p)**2+np.linalg.norm(q)**2)
+    q = 2*z_norm*(np.random.random(np.shape(args.init_q))-half_vector)
+    p = 2*z_norm*(np.random.random(np.shape(args.init_p))-half_vector)
+    z_norm = math.sqrt(np.linalg.norm(p)**2+np.linalg.norm(q)**2)
 
-    n = 2*p_norm #more than p
-    while n >= r:
-        p = np.random.random(np.shape(args.init_p))-half_vector
-        p_norm = np.linalg.norm(p)
 
     result = argparse.Namespace(**vars(args)) #copy args
     result.init_mx = mx
@@ -138,6 +137,7 @@ def generate_trajectories(args):
         argss = []
         for i in range(args.sampling):
             argss.append(update_args_init(args))
+        simulate_normal(argss[0])
         pool = mp.Pool(mp.cpu_count())
         dfs =  pool.map(simulate_normal, argss)
         pool.close()
@@ -163,7 +163,8 @@ def generate_trajectories(args):
         #generating initial conditions
         argss = []
         for i in range(args.points):
-            argss.append(update_args_init(args))
+            #argss.append(update_args_init(args))
+            argss.append(args)
 
         #GT
         print("Generating GT.")
@@ -391,7 +392,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float , default=[0])
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False,type=float , default=[1])
-    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
+    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="dfq")
     parser.add_argument('--comment',  type=str, help='Adds a note to the run, can be viewed in args.json file', required=False, default="")
     parser.add_argument('--no_plot', help='Turns off plotting after learning',action="store_true" , default=False) 
 

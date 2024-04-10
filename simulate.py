@@ -384,7 +384,7 @@ if __name__ == "__main__":
     parser.add_argument("--M", default=10.5, type=float, help="mass")
     parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float, default=[0])
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False, type=float, default=[1])
-    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
+    parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="dfq")
     parser.add_argument("--folder_name", default=DEFAULT_folder_name, type=str, help="Folder name")
 
     args = parser.parse_args([] if "__file__" not in globals() else None)

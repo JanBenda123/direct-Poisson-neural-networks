@@ -1,10 +1,23 @@
  #This file contains the forward Euler solver for the self-regularized rigid body motion and the Crank-Nicolson solver for the energetic self-regularization of rigid body motion
 
 from scipy.optimize import fsolve
-from math import *
+#from math import *
+
 import numpy as np
 
 import torch
+
+
+import math
+def cos(x):
+    if torch.is_tensor(x):
+        return torch.cos(x)
+    return math.cos(x)
+
+def sin(x):
+    if torch.is_tensor(x):
+        return torch.sin(x)
+    return math.sin(x)
 
 #from models.Model import EnergyNet, TensorNet, JacVectorNet
 from learner_config import  DEFAULT_folder_name
@@ -54,7 +67,7 @@ class RigidBody(object): #Parent Rigid body class
         self.myhbar = self.hbar * self.rho #due to rescaled mass
         self.kB = 1.38064852E-23 #Boltzmann constant
         self.umean = 4600 #mean sound speed in the low temperature solid (Copper) [SI]
-        self.Einconst = pi**2/10 * pow(15/(2* pi**2), 4.0/3) * self.hbar * self.umean * pow(self.kB, -4.0/3) #Internal energy prefactor, Characterisitic volume = 1
+        self.Einconst = math.pi**2/10 * math.pow(15/(2* math.pi**2), 4.0/3) * self.hbar * self.umean * math.pow(self.kB, -4.0/3) #Internal energy prefactor, Characterisitic volume = 1
         if verbose:
             print("Internal energy prefactor = ", self.Einconst)
 
@@ -153,7 +166,7 @@ class RigidBody(object): #Parent Rigid body class
         The function returns the magnitude of a vector.
         :return: The magnitude of the vector, represented by the variable "m".
         """
-        return sqrt(self.m2())
+        return math.sqrt(self.m2())
 
     def Ein(self):#returns normalized internal energy
         """
@@ -161,7 +174,7 @@ class RigidBody(object): #Parent Rigid body class
         :return: the normalized internal energy.
         """
         #return exp(2*(self.sin-1))/self.Iz
-        return self.Einconst*pow(self.sin,4.0/3)/self.Ein_init
+        return self.Einconst*math.pow(self.sin,4.0/3)/self.Ein_init
 
     def Ein_s(self): #returns normalized derivative of internal energy with respect to entropy (inverse temperature)
         """
@@ -169,7 +182,7 @@ class RigidBody(object): #Parent Rigid body class
         :return: the normalized derivative of internal energy with respect to entropy (inverse temperature).
         """
         #return 2*exp(2*(self.sin-1))/self.Iz
-        return self.Einconst*4.0/3*pow(self.sin, 1.0/3) / self.Ein_init
+        return self.Einconst*4.0/3*math.pow(self.sin, 1.0/3) / self.Ein_init
 
     def ST(self, T): #returns entropy of a Copper body with characteristic volume equal to one (Debye), [T] = K
         """
@@ -178,7 +191,7 @@ class RigidBody(object): #Parent Rigid body class
         :param T: T is the temperature of the Copper body in Kelvin (K)
         :return: the entropy of a Copper body with a characteristic volume equal to one (Debye) at a given temperature T.
         """
-        return 2 * pi**2/15 * self.kB * (self.kB/self.hbar *T/self.umean)**3
+        return 2 * math.pi**2/15 * self.kB * (self.kB/self.hbar *T/self.umean)**3
 
     def Etot(self):#returns normalized total energy
         """
@@ -593,7 +606,7 @@ class Neural(RigidBody):#SeRe forward Euler
         #calculate
         m_new = fsolve(self.f, (self.mx, self.my, self.mz))
 
-#       update
+        #update
         self.mx = m_new[0]
         self.my = m_new[1]
         self.mz = m_new[2]
@@ -1774,6 +1787,86 @@ class Cannonical(object):
         if hamiltonian not in ham_list.keys():
             raise Exception(f"Unknown hamiltonian identifier {hamiltonian}. Use one of the following: {ham_list.keys()}")
         return ham_list[hamiltonian]
+
+    def get_grad_E(self,z):
+        z = torch.tensor(z, requires_grad=True)
+
+        output = self.get_E(z)
+        output.backward()
+        z=self.tensor_to_numpy(z.grad)
+
+        return z
+    
+    def get_z_dot(self,z):
+        return self.get_L(z) @ self.get_grad_E(z) 
+    
+    def z_new_FE(self,get_z_dot):
+        new_z = self.z+ self.dt * get_z_dot(self.z) 
+        return new_z
+
+    def get_L(self, z):
+        """
+        The function `get_L` returns a 4x4 numpy array representing a transformation matrix.
+        
+        :param m: The parameter `m` is a tuple with three elements representing the x, y, and z coordinates respectively. The default value for `m` is (0.0, 0.0, 0.0)
+        :return: a 4x4 numpy array called L.
+        """
+        return self.L
+
+    def tensor_to_numpy(self,tensor):
+        """
+        Convert a PyTorch tensor to a NumPy array. Handles both single-element and multi-element tensors.
+        Args:
+        - tensor: PyTorch tensor to convert.
+        Returns:
+        - A NumPy array representation of the input tensor.
+        """
+        # Ensure the tensor is detached from the computation graph and moved to CPU
+        tensor = tensor.detach().cpu()
+        
+        # Check if the tensor is a scalar (i.e., contains only one element)
+        if tensor.numel() == 1:
+            # Use .item() to get the scalar value as a Python float and then create a NumPy array
+            return np.array([tensor.item()])
+        else:
+            # Use .numpy() to convert the tensor directly to a NumPy array
+            return tensor.numpy()
+
+    def z_new(self): #return new r and p
+        """
+        The function `m_new` returns new values for `r` and `p` by solving a system of equations using the `fsolve` function.
+        :return: a tuple containing two tuples. The first tuple contains the values of `rx` and `ry`, and the second tuple contains the values of `px` and `py`.
+        """
+        self.z = self.schemes[self.scheme](self.get_z_dot)
+        return self.z
+
+class General(object):
+    def __init__(self, dt, init_z, hamiltonian="", scheme = "FE", is_neural = False):
+        self.z = np.array(init_z)
+        self.dt =dt
+
+
+        get_E, self.L, self.dim  = General.get_ham_biv(hamiltonian)
+        if not is_neural:
+            self.get_E = get_E
+
+        if not ((self.dim == len(init_z)) or is_neural):
+            raise Exception(f"Wrong size for z provided. Expected {self.dim//2} for {hamiltonian}, got {len(init_z)}")
+    
+        self.scheme = scheme
+        self.schemes = {"FE": self.z_new_FE}
+
+
+    def get_ham_biv(hamiltonian):
+
+        ham_list = {"1DHO": (lambda z: 1/2*0.3*z[1]**2 + 1/2*z[0]**2, 2),
+                    "1DPEN": (lambda z: 1/2*z[1]**2 - cos(z[0]), 2),
+                    "FALL": (lambda z: 1/2*z[1]**2 + 10*z[0], 2),
+                    "2PEN": (lambda z: (z[2]**2 + 2*z[3]**2 - 2*z[2]*z[3]*cos(z[0]-z[1]))/(2*(1 + sin(z[0]-z[1])**2)) - 2*cos(z[0]) - cos(z[1]), 4),
+                    "2DHO": (lambda z: 1/2*1*z[2]**2 + 1/2*1*z[3]**2 + 1/2*0.5*z[0]**2 + 1/2*2*z[1]**2 + 1/2*1*(z[1]-z[0])**2, 4)}
+        if hamiltonian not in ham_list.keys():
+            raise Exception(f"Unknown hamiltonian identifier {hamiltonian}. Use one of the following: {ham_list.keys()}")
+        return ham_list[hamiltonian]
     def get_grad_E(self,z):
         z = torch.tensor(z, requires_grad=True)
 
@@ -1799,7 +1892,7 @@ class Cannonical(object):
         :param m: The parameter `m` is a tuple with three elements representing the x, y, and z coordinates respectively. The default value for `m` is (0.0, 0.0, 0.0)
         :return: a 4x4 numpy array called L.
         """
-        return self.L
+        return self.L(z)
 
     def tensor_to_numpy(self,tensor):
         """

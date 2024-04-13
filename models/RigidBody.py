@@ -1774,7 +1774,8 @@ class Cannonical(object):
             raise Exception(f"Wrong sizes of p and q provided. Expected {self.dim//2} for {hamiltonian}, got {len(init_q)} for q and {len(init_p)} for p")
     
         self.scheme = scheme
-        self.schemes = {"FE": self.z_new_FE}
+        self.schemes = {"FE": self.z_new_FE,
+                        "IMR": self.z_new_IMR}
 
 
     def get_ham(hamiltonian):
@@ -1803,6 +1804,11 @@ class Cannonical(object):
     def z_new_FE(self,get_z_dot):
         new_z = self.z+ self.dt * get_z_dot(self.z) 
         return new_z
+    
+    def z_new_IMR(self,get_z_dot):
+        f = lambda new_z: new_z-(self.z+self.dt*get_z_dot(0.5*(self.z+new_z)))
+        return fsolve(f,self.z)
+        
 
     def get_L(self, z):
         """

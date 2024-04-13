@@ -180,11 +180,11 @@ def simulate(args, method = "normal"): #simulate with args given below
         if method == "implicit":
             raise Exception("Not implemented error")
         elif method == "soft":
-            solver = GeneralNeural(args.dt, args.init_q, args.init_p,hamiltonian=args.H, scheme = "FE", method = "soft", name =  args.folder_name)
+            solver = GeneralNeural(args.dt, args.init_q, args.init_p,hamiltonian=args.H, scheme = args.scheme, method = "soft", name =  args.folder_name)
         elif method == "without":
-            solver = GeneralNeural(args.dt, args.init_q, args.init_p,hamiltonian=args.H, scheme = "FE", method = "without", name =  args.folder_name)
+            solver = GeneralNeural(args.dt, args.init_q, args.init_p,hamiltonian=args.H, scheme = args.scheme, method = "without", name =  args.folder_name)
         elif method =="normal":
-            solver = Cannonical(args.dt, args.init_q, args.init_p, hamiltonian=args.H)           
+            solver = Cannonical(args.dt, args.init_q, args.init_p, hamiltonian=args.H, scheme = args.scheme)           
         
     #Timesteps
     dt = args.dt

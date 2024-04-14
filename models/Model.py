@@ -6,7 +6,7 @@ import torch.nn.functional as F
 # The `EnergyNet` class is a neural network model that takes in input data and outputs a single value,
 # using a specified number of layers and neurons per layer.
 class EnergyNet(nn.Module):
-    def __init__(self, dim, neurons, layers, batch_size):
+    def __init__(self, dim, neurons, layers, batch_size, quad_features = False):
         """
         The function initializes a neural network with a specified number of dimensions, neurons,
         layers, and batch size.
@@ -16,13 +16,14 @@ class EnergyNet(nn.Module):
         :param layers: The "layers" parameter represents the number of hidden layers in the neural network
         :param batch_size: The batch size is the number of samples that will be propagated through the network at once. It is used to divide the dataset into smaller batches for efficient training
         """
+        self.ENABLED_QUADRATIC_FEATURES = quad_features
         super(EnergyNet, self).__init__()
         self.dim = dim
         self.neurons = neurons
         self.layers = layers
         self.batch_size = batch_size
 
-        self.inputDense = nn.Linear(dim, neurons)
+        self.inputDense = nn.Linear(dim + self.ENABLED_QUADRATIC_FEATURES*dim*(dim+1)//2, neurons)
         self.hidden = [nn.Linear(neurons, neurons)
                        for i in range(layers-1)]
         self.hidden = nn.ModuleList(self.hidden)
@@ -37,6 +38,20 @@ class EnergyNet(nn.Module):
         :param x: The parameter `x` represents the input to the neural network. It is passed through the input dense layer, followed by a softplus activation function. Then, it is passed through a series of hidden layers, each followed by a softplus activation function. Finally, the output is obtained by passing through the output layer.
         :return: The output of the forward pass through the neural network model.
         """
+        if self.ENABLED_QUADRATIC_FEATURES:
+            if x.dim() == 1:
+                outer_product = torch.outer(x, x)
+                indices = torch.triu_indices(x.size(0), x.size(0), offset=0)
+                quadratic_features = outer_product[indices[0], indices[1]]
+                x = torch.cat((quadratic_features, x), dim=0)
+            else: #batches mess things up a bit. 
+                x_expanded = x.unsqueeze(2)  # Shape [20, self.dim, 1]
+                x_t_expanded = x.unsqueeze(1)  # Shape [20, 1, self.dim]
+                outer_product = x_expanded * x_t_expanded  # Shape [20, self.dim, self.dim]
+                mask = torch.triu(torch.ones(self.dim, self.dim, dtype=torch.bool))
+                quadratic_features = outer_product[:, mask]
+                x = torch.cat((quadratic_features, x), dim=1)
+    
         x = self.inputDense(x)
         x = F.softplus(x)
         for i in range(self.layers-1):

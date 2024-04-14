@@ -25,7 +25,7 @@ class Learner(object):
     This is the fundamental class that provides the capability to learn dynamical systems, 
     using various methods of learning (without Jacobi identity, with softly enforced Jacobi, and with implicitly valid Jacobi).
     """
-    def __init__(self, model, batch_size = DEFAULT_batch_size, dt = DEFAULT_dt, neurons = DEFAULT_neurons, layers = DEFAULT_layers, name = DEFAULT_folder_name, cuda = False, dissipative = False, general_dim = 2):
+    def __init__(self, model, batch_size = DEFAULT_batch_size, dt = DEFAULT_dt, neurons = DEFAULT_neurons, layers = DEFAULT_layers, name = DEFAULT_folder_name, cuda = False, dissipative = False, general_dim = 2, quad_features = False):
         """
         This function initializes a Learner object for a given model, with specified parameters and
         datasets.
@@ -65,7 +65,7 @@ class Learner(object):
 
         self.df = pd.read_csv(name+"/"+DEFAULT_dataset, dtype=np.float32)
 
-        self.energy = EnergyNet(dim, neurons, layers, batch_size)
+        self.energy = EnergyNet(dim, neurons, layers, batch_size,quad_features)
         self.L_tensor = TensorNet(dim, neurons, layers, batch_size)
         self.jac_vec = JacVectorNet(dim, neurons, layers, batch_size)
         self.entropy = EnergyNet(dim, neurons, layers, batch_size)
@@ -448,13 +448,17 @@ if __name__ == "__main__":
     parser.add_argument("--method", default = "without", type=str, help="Method: without, implicit, or soft")
     parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="dfq")
     parser.add_argument("--folder_name", default=DEFAULT_folder_name, type=str, help="Folder name")
+    parser.add_argument("--quad_features", default=False, action="store_true", help="Should trained Hamiltonian also have quadratic features?")
+    #parser.parse_args(['-h'])
+
+    args = parser.parse_args([] if "__file__" not in globals() else None)
     #parser.parse_args(['-h'])
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
 
     utils.check_folder(args.folder_name) #check whether the folders data and saved_models exist, or create them
 
-    learner = Learner(args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name)
+    learner = Learner(args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, quad_features = args.quad_features)
     learner.learn(method = args.method, learning_rate = args.learning_rate, epochs = args.epochs, prefactor = args.prefactor)
 
 

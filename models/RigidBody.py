@@ -1775,7 +1775,9 @@ class Cannonical(object):
     
         self.scheme = scheme
         self.schemes = {"FE": self.z_new_FE,
-                        "IMR": self.z_new_IMR}
+                        "IMR": self.z_new_IMR,
+                        "CN": self.z_new_CN,
+                        "RK4": self.z_new_RK4}
 
 
     def get_ham(hamiltonian):
@@ -1808,6 +1810,17 @@ class Cannonical(object):
     def z_new_IMR(self,get_z_dot):
         f = lambda new_z: new_z-(self.z+self.dt*get_z_dot(0.5*(self.z+new_z)))
         return fsolve(f,self.z)
+    
+    def z_new_CN(self,get_z_dot):
+        f = lambda new_z: new_z-(self.z+self.dt*(get_z_dot(self.z)+get_z_dot(new_z))/2)
+        return fsolve(f,self.z)
+
+    def z_new_RK4(self,get_z_dot):
+        k1 = self.dt * get_z_dot(self.z)
+        k2 = self.dt * get_z_dot(self.z + k1/2)
+        k3 = self.dt * get_z_dot(self.z + k2/2)
+        k4 = self.dt * get_z_dot(self.z+ k3)
+        return self.z + 1/6 * (k1 + 2*k2 + 2*k3 +k4)
         
 
     def get_L(self, z):

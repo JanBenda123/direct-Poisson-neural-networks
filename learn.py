@@ -428,6 +428,44 @@ class LearnerIMR(Learner):
         Jz, cass = self.jac_vec(mid_tensor)
         Jz2, cass2 = self.jac_vec(mid_tensor)
         return (zn_tensor - zn2_tensor)/self.dt + torch.cross(Jz, E_z, dim=1) 
+    
+class LearnerRK4(Learner):
+    def z_dot(self, zn_tensor):
+        En = self.energy(zn_tensor)
+        E_z = torch.autograd.grad(En.sum(), zn_tensor, only_inputs=True, create_graph=True)[0]
+        Lz = self.L_tensor(zn_tensor)
+        return torch.matmul(Lz, E_z.unsqueeze(2)).squeeze()
+    def mov_loss_without(self, zn_tensor, zn2_tensor, mid_tensor):
+        k1 = self.dt * self.z_dot(zn_tensor)
+        k2 = self.dt * self.z_dot(zn_tensor + k1/2)
+        k3 = self.dt * self.z_dot(zn_tensor + k2/2)
+        k4 = self.dt * self.z_dot(zn_tensor+ k3)
+        return (zn_tensor-zn2_tensor)/self.dt + 1/6 * (k1 + 2*k2 + 2*k3 +k4)/self.dt
+
+    
+    def mov_loss_without_with_jacobi(self, zn_tensor, zn2_tensor, mid_tensor, reduced_L):
+        mov_loss = self.mov_loss_without(zn_tensor, zn2_tensor, mid_tensor)
+        Lz = self.L_tensor(mid_tensor)
+        jacobi_loss = self.jacobi_loss(mid_tensor, Lz, reduced_L) 
+        return mov_loss, jacobi_loss
+
+    def mov_loss_soft(self, zn_tensor, zn2_tensor, mid_tensor, reduced_L):
+        mov_loss = self.mov_loss_without(zn_tensor, zn2_tensor, mid_tensor)
+        Lz = self.L_tensor(mid_tensor)
+        #Jacobi
+        jacobi_loss = self.jacobi_loss(mid_tensor, Lz, reduced_L) 
+        return mov_loss, jacobi_loss
+
+    def mov_loss_implicit(self, zn_tensor, zn2_tensor, mid_tensor):
+        raise Exception("Not yet implemented")
+        if self.dissipative:
+            raise Exception("Not yet implemented")
+        En = self.energy(mid_tensor)
+        E_z = torch.autograd.grad(En.sum(), mid_tensor, only_inputs=True, create_graph=True)[0]
+ 
+        Jz, cass = self.jac_vec(mid_tensor)
+        Jz2, cass2 = self.jac_vec(mid_tensor)
+        return (zn_tensor - zn2_tensor)/self.dt + torch.cross(Jz, E_z, dim=1) 
 
 
 

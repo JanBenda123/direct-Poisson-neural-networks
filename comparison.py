@@ -47,6 +47,8 @@ def update_args_init(args):
     q,p = np.array(args.init_q,dtype=float) ,np.array(args.init_p,dtype=float)
     z_norm = math.sqrt(np.linalg.norm(p)**2 +  np.linalg.norm(q)**2)
 
+    
+
     n = 2*m #more than m
     while n >= m:
         mx = m*2*(np.random.rand()-0.5)
@@ -75,6 +77,8 @@ def update_args_init(args):
 
 
     result = argparse.Namespace(**vars(args)) #copy args
+
+    result.scheme="RK4"
     result.init_mx = mx
     result.init_my = my
     result.init_mz = mz
@@ -165,6 +169,7 @@ def generate_trajectories(args):
         for i in range(args.points):
             #argss.append(update_args_init(args))
             argss.append(args)
+            argss[-1].scheme = "RK4" # generate trajectory uring RK4
 
         #GT
         print("Generating GT.")
@@ -430,6 +435,8 @@ if __name__ == "__main__":
         print("-------------------------------")
         if args.scheme == "IMR":
             learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+        elif args.scheme == "RK4":
+            learner = LearnerRK4(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
         else:
             learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
         learner.learn(method = "implicit", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor)
@@ -440,6 +447,8 @@ if __name__ == "__main__":
         print("-------------------------------")
         if args.scheme == "IMR":
             learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+        elif args.scheme == "RK4":
+            learner = LearnerRK4(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
         else:
             learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
         learner.learn(method = "soft", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor, jac_prefactor = args.jac_prefactor)
@@ -450,6 +459,8 @@ if __name__ == "__main__":
         print("-------------------------------")
         if args.scheme == "IMR":
             learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+        elif args.scheme == "RK4":
+            learner = LearnerRK4(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
         else:
             learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
         learner.learn(method = "without", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor)

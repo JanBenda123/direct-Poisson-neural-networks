@@ -1,4 +1,4 @@
-python comparison.py --soft --without  --no_plot --generate --model=CANN --H=2DHO --steps=1000 --dt 0.01 --epochs 2 --layers 5   --init_q 0.78 1.56  --init_p  0 0  --folder_name=2DHODEMO1
-python comparison.py --soft --without  --no_plot --generate --model=CANN --H=2DHO --steps=1000 --dt 0.01 --epochs 4 --layers 5   --init_q 0.78 1.56  --init_p  0 0  --folder_name=2DHODEMO2
-python comparison.py --soft --without  --no_plot --generate --model=CANN --H=2DHO --steps=1000 --dt 0.01 --epochs 8 --layers 5   --init_q 0.78 1.56  --init_p  0 0  --folder_name=2DHODEMO3
-python comparison.py --soft --without  --no_plot --generate --model=CANN --H=2DHO --steps=1000 --dt 0.01 --epochs 16 --layers 5   --init_q 0.78 1.56  --init_p  0 0  --folder_name=2DHODEMO4
+python comparison.py --soft --without  --no_plot --generate --model=CANN --H 2DHO --sampling 15 --steps 1000 --dt 0.01 --epochs 30  --scheme FE  --init_p 0 0  --init_q 1 0    --folder_name=2DHO_15_30  --points 20
+python comparison.py --soft --without  --no_plot --generate --model=CANN --H 2DHO --sampling 10 --steps 1000 --dt 0.01 --epochs 45  --scheme FE  --init_p 0 0  --init_q 1 0    --folder_name=2DHO_10_45  --points 20
+python comparison.py --soft --without  --no_plot --generate --model=CANN --H 2DHO --sampling 8 --steps 1000 --dt 0.01 --epochs 33  --scheme FE  --init_p 0 0  --init_q 1 0    --folder_name=2DHO_8_37  --points 20
+python comparison.py --soft --without  --no_plot --generate --model=CANN --H 2DHO --sampling 5 --steps 1000 --dt 0.01 --epochs 90  --scheme FE  --init_p 0 0  --init_q 1 0    --folder_name=2DHO_5_90  --points 20

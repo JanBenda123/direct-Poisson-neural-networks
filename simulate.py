@@ -55,10 +55,11 @@ def simulate(args, method = "normal"): #simulate with args given below
                 solver = RBESeReCN(args.Ix,args.Iy,args.Iz, d2E, args.init_mx,args.init_my,args.init_mz,args.dt,args.alpha)
             elif args.scheme == "FE":
                 solver = RBESeReFE(args.Ix,args.Iy,args.Iz, d2E, args.init_mx,args.init_my,args.init_mz,args.dt,args.alpha)
-            elif args.scheme == "IMR":
+            elif args.scheme == "IMR" or args.scheme == "RK4": 
+                #if args.scheme == "RK4": print("RK4 not implemented yet - redirected to IMR")
                 solver = RBIMR(args.Ix,args.Iy,args.Iz, d2E, args.init_mx,args.init_my,args.init_mz,args.dt)
             else:
-                raise Exception("Unknown scheme.")
+                raise Exception("Unknown scheme: "+ args.scheme)
         else:
             raise Exception("Unknown method.")
     elif args.model == "HT": # Heavy top

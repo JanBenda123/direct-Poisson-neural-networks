@@ -367,8 +367,10 @@ def plot_first(field):
     if args.GT:
         add_plot(plt, times, dfgt[field][:len(times)], name=args.model+" GT: "+field )
     plt.legend()
+    plt.title("Evolution of " +field +" variable")
+    plt.xlabel("Time")
     if args.export:
-        file_name = args.folder_name+"/"+args.model+"_first_"+field+".png"
+        file_name = args.folder_name+"/graphics/"+args.model+"_first_"+field+".png"
         print("Exporting figure to: "+file_name)
         plt.savefig(file_name) 
     plt.show()
@@ -519,7 +521,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot_field", default="None", type=str, help="Plot field")
     parser.add_argument("--plot_first", default="None", type=str, help="Plot field")
     parser.add_argument("--folder_name", default=DEFAULT_folder_name, type=str, help="Folder name")
-    parser.add_argument("--export", default=False, action="store_true", help="Save figures and logs.")
+    parser.add_argument("--export", default=True, action="store_true", help="Save figures and logs.")
     parser.add_argument("--plot_first_mx", default=False, action="store_true", help="Show mx in the first path.")
     parser.add_argument("--plot_first_rx", default=False, action="store_true", help="Show rx in the first path.")
     parser.add_argument("--plot_Jacobi", default=False, action="store_true", help="Plot Jacobiator during validation.")
@@ -594,7 +596,8 @@ if __name__ == "__main__":
         plot_field(fields = ["rx", "ry", "rz"])
 
     if args.plot_E:
-        plot_field(fields = ["E"])
+        #plot_field(fields = ["E"])
+        plot_first("E")
 
     if args.plot_L:
         if args.model == "RB":

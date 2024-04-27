@@ -1,14 +1,5 @@
- python simulate.py --generate --steps=50000 --model=RB --folder_name=TEST
-
-
-python learn.py --method=without --model=RB --folder_name=TEST
-python learn.py --method=soft --model=RB --folder_name=TEST
-python learn.py --method=implicit --model=RB --folder_name=TEST
-
-python simulate.py --steps=500 --generate --folder_name=TEST
-python simulate.py --steps=500 --implicit --folder_name=TEST
-python simulate.py --steps=500 --soft --folder_name=TEST
-python simulate.py --steps=500 --without --folder_name=TEST
-
-
-python plot_compare.py --plot_m --plot_E --plot_L --folder_name=TEST
+python comparison.py --scheme=FE --model='RB' --steps=1000 --init_mx=10.0 --init_my=3.0 --init_mz=4.0 --Mgl=0.981  --dt=0.01 --implicit --soft --without --generate --sampling=50 --points=100  --epochs=10  --neurons=32 --layers=4 --folder_name='RB10' --no_plot
+python comparison.py --scheme=FE --model='RB' --steps=1000 --init_mx=10.0 --init_my=3.0 --init_mz=4.0 --Mgl=0.981  --dt=0.01 --implicit --soft --without --generate --sampling=50 --points=100  --epochs=50  --neurons=32 --layers=4 --folder_name='RB50' --no_plot
+python comparison.py --scheme=FE --model='RB' --steps=1000 --init_mx=10.0 --init_my=3.0 --init_mz=4.0 --Mgl=0.981  --dt=0.01 --implicit --soft --without --generate --sampling=50 --points=100  --epochs=40  --neurons=32 --layers=4 --folder_name='RB40' --no_plot
+python comparison.py --scheme=FE --model='RB' --steps=1000 --init_mx=10.0 --init_my=3.0 --init_mz=4.0 --Mgl=0.981  --dt=0.01 --implicit --soft --without --generate --sampling=50 --points=100  --epochs=30  --neurons=32 --layers=4 --folder_name='RB30' --no_plot
+python comparison.py --scheme=FE --model='RB' --steps=1000 --init_mx=10.0 --init_my=3.0 --init_mz=4.0 --Mgl=0.981  --dt=0.01 --implicit --soft --without --generate --sampling=50 --points=100  --epochs=20  --neurons=32 --layers=4 --folder_name='RB20' --no_plot

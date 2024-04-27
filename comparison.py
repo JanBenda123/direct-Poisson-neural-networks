@@ -70,7 +70,7 @@ def update_args_init(args):
     # while n >= z_norm:
     #     q = 2*z_norm*(np.random.random(np.shape(args.init_q))-half_vector)
     #     p = 2*z_norm*(np.random.random(np.shape(args.init_p))-half_vector)
-    #     z_norm = math.sqrt(np.linalg.norm(p)**2+np.linalg.norm(q)**2)
+    #     n = math.sqrt(np.linalg.norm(p)**2+np.linalg.norm(q)**2)
     q = 2*z_norm*(np.random.random(np.shape(args.init_q))-half_vector)
     p = 2*z_norm*(np.random.random(np.shape(args.init_p))-half_vector)
     z_norm = math.sqrt(np.linalg.norm(p)**2+np.linalg.norm(q)**2)
@@ -166,10 +166,12 @@ def generate_trajectories(args):
 
         #generating initial conditions
         argss = []
-        for i in range(args.points):
-            #argss.append(update_args_init(args))
-            argss.append(args)
-            argss[-1].scheme = "RK4" # generate trajectory uring RK4
+        argss.append(args)
+        argss[-1].scheme = "RK4"
+        for i in range(args.points-1):
+            argss.append(update_args_init(args))
+            #argss.append(args)
+            #argss[-1].scheme = "RK4" # generate trajectory uring RK4
 
         #GT
         print("Generating GT.")
@@ -258,6 +260,7 @@ def plot_training_errors(args):
     print("***If Runtime tkinter errors are raised, it is because some matplotlib vs threads problems. Shouldn't be serious.***")
 
     name = args.folder_name
+
     if args.soft:
         df_soft_errors = pd.read_csv(name+"/data/errors_soft.csv")
         train_mov_errors = df_soft_errors["train_mov"]
@@ -266,6 +269,8 @@ def plot_training_errors(args):
         add_plot(plt, y=train_mov_errors[1:], name="soft train move")
         add_plot(plt, y=validation_mov_errors[1:], name="soft val move")
         plt.legend()
+        plt.xlabel("epochs")
+        plt.ylabel("loss")
         plt.show() if not args.no_plot else plt.savefig(name+"/graphics/soft_move.png"); plt.close(fig)
 
         validation_reg_errors = df_soft_errors["val_reg"]
@@ -274,6 +279,8 @@ def plot_training_errors(args):
         add_plot(plt, y=train_reg_errors[1:], name="soft train Jacobi")
         add_plot(plt, y=validation_reg_errors[1:], name="soft val Jacobi", semilogy=False)
         plt.legend()
+        plt.xlabel("epochs")
+        plt.ylabel("loss")
         plt.show() if not args.no_plot else plt.savefig(name+"/graphics/soft_jacobi.png"); plt.close(fig)
 
     if args.implicit:
@@ -284,6 +291,8 @@ def plot_training_errors(args):
         add_plot(plt, y=train_mov_errors[1:], name="impclicit train move")
         add_plot(plt, y=validation_mov_errors[1:], name="implicit val move")
         plt.legend()
+        plt.xlabel("epochs")
+        plt.ylabel("loss")
         plt.show() if not args.no_plot else plt.savefig(name+"/graphics/implicit_move.png"); plt.close(fig)
 
     if args.without:
@@ -294,6 +303,8 @@ def plot_training_errors(args):
         add_plot(plt, y=train_mov_errors[1:], name="without train move")
         add_plot(plt, y=validation_mov_errors[1:], name="without val move")
         plt.legend()
+        plt.xlabel("epochs")
+        plt.ylabel("loss")
         plt.show() if not args.no_plot else plt.savefig(name+"/graphics/without_move.png"); plt.close(fig)
 
 def resolve_automatic_dt(args):

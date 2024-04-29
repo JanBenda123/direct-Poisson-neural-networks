@@ -154,6 +154,7 @@ def generate_trajectories(args):
         simulate.save_simulation(total_data_frame, args.folder_name+"/"+DEFAULT_dataset)
         print("Generated trajectories saved to: ", args.folder_name+"/"+DEFAULT_dataset)
     else: #simulating with the learned models
+        args.err_std = None # turns off the comparison error
         total_implicit_data_frame = None
         total_soft_data_frame = None
         total_without_data_frame = None
@@ -412,6 +413,9 @@ if __name__ == "__main__":
     parser.add_argument('--comment',  type=str, help='Adds a note to the run, can be viewed in args.json file', required=False, default="")
     parser.add_argument('--no_plot', help='Turns off plotting after learning',action="store_true" , default=False)
     parser.add_argument("--quad_features", default=False, action="store_true", help="Should trained Hamiltonian also have quadratic features?")
+    parser.add_argument("--learn_dissip", default=False, action="store_true", help="Should network anticipate dissipation?")
+    parser.add_argument("--M_tau", default=0, type=int, help="Multiple of dt used for energy regularisation for training dataset and GT.")
+    parser.add_argument("--err_std", default=None, type=float, help="standard deviation of noise added to train/test dataset.")
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
 
@@ -444,36 +448,42 @@ if __name__ == "__main__":
         print("-------------------------------")
         print("Learning implicit Jacobi.")    
         print("-------------------------------")
-        if args.scheme == "IMR":
-            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+        if args.learn_dissip:
+            learner = LearnerDissip(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
+        elif args.scheme == "IMR":
+            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
         elif args.scheme == "RK4":
-            learner = LearnerRK4(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+            learner = LearnerRK4(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
         else:
-            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
         learner.learn(method = "implicit", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor)
         logger.log("Implicit Jacobi trained")
     if args.soft:
         print("-------------------------------")
         print("Learning soft Jacobi.")    
         print("-------------------------------")
-        if args.scheme == "IMR":
-            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+        if args.learn_dissip:
+            learner = LearnerDissip(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
+        elif args.scheme == "IMR":
+            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
         elif args.scheme == "RK4":
-            learner = LearnerRK4(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+            learner = LearnerRK4(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
         else:
-            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
         learner.learn(method = "soft", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor, jac_prefactor = args.jac_prefactor)
         logger.log("Soft Jacobi trained")
     if args.without:
         print("-------------------------------")
         print("Learning without Jacobi.")    
         print("-------------------------------")
-        if args.scheme == "IMR":
-            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+        if args.learn_dissip:
+            learner = LearnerDissip(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
+        elif args.scheme == "IMR":
+            learner = LearnerIMR(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
         elif args.scheme == "RK4":
-            learner = LearnerRK4(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+            learner = LearnerRK4(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
         else:
-            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, dissipative = dissipative, general_dim = general_dim, quad_features = args.quad_features)
+            learner = Learner(model=args.model, neurons = args.neurons, layers = args.layers, batch_size = args.batch_size, dt = args.dt, name = args.folder_name, cuda = args.cuda, general_dim = general_dim, quad_features = args.quad_features)
         learner.learn(method = "without", learning_rate = args.lr, epochs = args.epochs, prefactor = args.prefactor)
         logger.log("Without Jacobi trained")
     if not args.no_show:

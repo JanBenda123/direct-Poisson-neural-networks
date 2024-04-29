@@ -1,5 +1,5 @@
 import os
-
+import torch
 def check_folder(name):
     """
     The function `check_folder` checks if the specified folder exists, and if not, creates it along with
@@ -21,3 +21,16 @@ def check_folder(name):
     if not os.path.exists(graphics_name):
         print("Making folder: "+graphics_name)
         os.makedirs(graphics_name)
+
+
+
+def compute_hessian(outputs, inputs):
+        batch_size,input_size = inputs.shape
+        f= lambda i: outputs(i).sum()
+        hess_batch = []
+        for input in inputs:
+            hess_batch.append( torch.autograd.functional.hessian(f, input))
+        return torch.stack(hess_batch)
+
+        
+

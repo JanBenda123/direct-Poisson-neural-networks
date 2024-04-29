@@ -173,3 +173,16 @@ class JacVectorNet(nn.Module):
         cass_grad = torch.autograd.grad(torch.sum(cass), inp, only_inputs=True, create_graph=True)[0]
 
         return multi * cass_grad, cass
+    
+class TauNet(nn.Module):
+    def __init__(self,batch_size):
+        super(TauNet, self).__init__()
+        self.tauM = nn.Parameter(torch.ones(1))
+        self.tauN = nn.Parameter(torch.ones(1))
+        self.batch_size = batch_size
+
+    def tau(self):
+        return (self.tauM,self.tauN) 
+    def forward(self, inp):
+        return self.tauM*inp[0]#+self.tauN(inp[1])
+ 

@@ -6,6 +6,7 @@ from scipy.optimize import fsolve
 import numpy as np
 
 import torch
+import utils
 
 
 import math
@@ -286,13 +287,13 @@ class RBEhrenfest(RigidBody):#Ehrenfest scheme for the rigid body, Eq. 5.25a fro
         #calculate
         mOld = [self.mx, self.my, self.mz]
         ω = np.dot(self.d2E, mOld) # (mx/Ix, my/Iy, mz/Iz) = dE/dm = ω
-        ham = np.cross(mOld, ω) #m x E_m
+        LdH = np.cross(mOld, ω) #m x E_m
 
-        Mreg = np.cross(mOld , np.dot(self.d2E, ham))
-        Nreg = np.cross(ham, ω)
+        Mreg = np.cross(mOld , np.dot(self.d2E, LdH))
+        Nreg = np.cross(LdH, ω)
         reg = 0.5*self.dt * (Mreg+Nreg)
 
-        m_new = mOld + self.dt*ham + self.dt*reg
+        m_new = mOld + self.dt*LdH + self.dt*reg
 
         #update
         self.mx = m_new[0]
@@ -475,7 +476,7 @@ class RBESeReFE(RigidBody):#SeRe forward Euler
         return m
 
 class Neural(RigidBody):#SeRe forward Euler
-    def __init__(self, Ix, Iy, Iz, d2E, mx, my, mz, dt, alpha, method = "without", name = DEFAULT_folder_name):
+    def __init__(self, Ix, Iy, Iz, d2E, mx, my, mz, dt, alpha, method = "without", name = DEFAULT_folder_name, dissip = False):
         """
         The function initializes a Neural object with specified parameters and loads a pre-trained neural
         network based on the chosen method.
@@ -495,27 +496,39 @@ class Neural(RigidBody):#SeRe forward Euler
         super(Neural, self).__init__(Ix, Iy, Iz, d2E, mx, my, mz, dt, alpha)
         # Load network
         self.method = method
+        self.dissip = dissip
         if method == "soft":
             self.energy_net = torch.load(name+'/saved_models/soft_jacobi_energy')
             self.energy_net.eval()   
             self.L_net = torch.load(name+'/saved_models/soft_jacobi_L')
             self.L_net.eval()
+            if dissip:
+                self.tau_net= torch.load(name+'/saved_models/soft_taus')
+                self.tau_net.eval()
         elif method == "without":
             self.energy_net = torch.load(name+'/saved_models/without_jacobi_energy')
             self.energy_net.eval()   
             self.L_net = torch.load(name+'/saved_models/without_jacobi_L')
             self.L_net.eval()
+            if dissip:
+                self.tau_net= torch.load(name+'/saved_models/without_taus')
+                self.tau_net.eval()
         elif method == "implicit":
             self.energy_net = torch.load(name+'/saved_models/implicit_jacobi_energy')
             self.energy_net.eval()
             self.J_net = torch.load(name+'/saved_models/implicit_jacobi_J')
             self.J_net.eval()
+            if dissip:
+                self.tau_net= torch.load(name+'/saved_models/without_taus')
+                self.tau_net.eval()
             def L_net(z):
                 L = -1*torch.tensor([[[0.0, z[2], -z[1]],[-z[2], 0.0, z[0]],[z[1], -z[0], 0.0]]])
                 return L
             self.L_net = L_net
         else:
             raise Exception("Unkonown method: ", method)
+        
+        
 
     # Get gradient of energy from NN
     def neural_zdot(self, z):
@@ -539,6 +552,13 @@ class Neural(RigidBody):#SeRe forward Euler
             J, cass = self.J_net(z_tensor)
             J = J.detach().numpy()
             hamiltonian = np.cross(J, E_z.detach().numpy())
+
+        if self.dissip:
+            if self.method != "implicit":
+                E_zz = utils.compute_hessian(self.energy_net, z_tensor)
+                M = 0.5*L @ E_zz.detach().numpy() @ L @ E_z
+                hamiltonian += self.dt*self.dt*self.tau_net((M,0))
+
 
         return hamiltonian
 

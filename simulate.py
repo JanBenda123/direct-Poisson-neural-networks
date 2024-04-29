@@ -283,6 +283,8 @@ def simulate(args, method = "normal"): #simulate with args given below
                 rs.append(np.array(r, copy=True))
                 rsqs.append(np.dot(r,r))
             elif args.model == "CANN":
+                if args.err_std is not None:
+                    z += np.random.normal(0,args.err_std,z.shape)
                 Ls.append(solver.get_L(z))
                 Es.append(solver.get_E(z))
                 zs.append(z)
@@ -387,6 +389,7 @@ if __name__ == "__main__":
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False, type=float, default=[1])
     parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="dfq")
     parser.add_argument("--folder_name", default=DEFAULT_folder_name, type=str, help="Folder name")
+    parser.add_argument("--err_std", default=0.0, type=float, help="standard deviation to be added to train/test dataset.")
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
     utils.check_folder(args.folder_name) #check whether the folders data and saved_models exist, or create them

@@ -422,6 +422,55 @@ class RBIMR(RigidBody):#implicit midpoint
 
         return m_new
 
+class RBRK4(RigidBody):#implicit midpoint
+    def __init__(self, Ix, Iy, Iz, d2E, mx, my, mz, dt,tau):
+        """
+        The function initializes an instance of the RBIMR class with given parameters.
+        
+        :param Ix: The moment of inertia about the x-axis
+        :param Iy: The parameter "Iy" represents the moment of inertia about the y-axis. It is a measure of an object's resistance to changes in rotation about the y-axis
+        :param Iz: The parameter "Iz" represents the moment of inertia about the z-axis. It is a measure of an object's resistance to changes in its rotational motion about the z-axis
+        :param d2E: The parameter "d2E" likely represents the second derivative of the energy function. It could be a function or a value that represents the rate of change of energy with respect to time
+        :param mx: The parameter "mx" represents the x-component of the moment of inertia
+        :param my: The parameter "my" represents the moment of inertia about the y-axis
+        :param mz: The parameter "mz" represents the moment of inertia about the z-axis
+        :param dt: The parameter "dt" represents the time step or time interval between each iteration or calculation in the RBIMR class.
+        """
+        self.tau = tau
+        super(RBRK4, self).__init__(Ix, Iy, Iz, d2E, mx, my, mz, dt, 0.0)
+
+    def m_dot(self,m):
+        m = [self.mx, self.my, self.mz]
+        LdH = self.get_L(m)@self.d2E @ m
+        M = 0.5*self.get_L(m) @ self.d2E @ LdH
+        
+        return LdH+ self.dt*self.dt*self.tau*M
+
+
+
+    def m_new(self, with_entropy = False): #return new m and update RB
+        """
+        The function `m_new` calculates and returns new values for `mx`, `my`, and `mz`, and updates the
+        corresponding variables in the class.
+        
+        :param with_entropy: The "with_entropy" parameter is a boolean flag that determines whether or not to include entropy in the calculation of the new value of m. If set to True, entropy will be considered in the calculation. If set to False, entropy will not be considered, defaults to False (optional)
+        :return: the updated values of mx, my, and mz as a tuple.
+        """
+        #calculate
+        m = [self.mx, self.my, self.mz]
+        k1 = self.m_dot(m)
+        k2 = self.m_dot(m + self.dt*k1/2)
+        k3 = self.m_dot(m + self.dt*k2/2)
+        k4 = self.m_dot(m + self.dt*k3)
+        m_new = m + self.dt/6*(k1 + 2*k2 + 2*k3 + k4)
+
+        #update
+        self.mx = m_new[0]
+        self.my = m_new[1]
+        self.mz = m_new[2]
+
+        return m_new
+
 
 class RBESeReFE(RigidBody):#SeRe forward Euler
     def __init__(self, Ix, Iy, Iz, d2E, mx, my, mz, dt, alpha):

@@ -169,6 +169,7 @@ def generate_trajectories(args):
         argss = []
         argss.append(args)
         argss[-1].scheme = "RK4"
+
         for i in range(args.points-1):
             argss.append(update_args_init(args))
             #argss.append(args)
@@ -414,7 +415,7 @@ if __name__ == "__main__":
     parser.add_argument('--no_plot', help='Turns off plotting after learning',action="store_true" , default=False)
     parser.add_argument("--quad_features", default=False, action="store_true", help="Should trained Hamiltonian also have quadratic features?")
     parser.add_argument("--learn_dissip", default=False, action="store_true", help="Should network anticipate dissipation?")
-    parser.add_argument("--M_tau", default=0, type=int, help="Multiple of dt used for energy regularisation for training dataset and GT.")
+    parser.add_argument("--M_tau", default=0, type=float, help="Multiple of dt used for energy regularisation for training dataset and GT.")
     parser.add_argument("--err_std", default=None, type=float, help="standard deviation of noise added to train/test dataset.")
 
     args = parser.parse_args([] if "__file__" not in globals() else None)

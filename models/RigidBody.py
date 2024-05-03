@@ -436,15 +436,15 @@ class RBRK4(RigidBody):#implicit midpoint
         :param mz: The parameter "mz" represents the moment of inertia about the z-axis
         :param dt: The parameter "dt" represents the time step or time interval between each iteration or calculation in the RBIMR class.
         """
-        self.tau = tau
         super(RBRK4, self).__init__(Ix, Iy, Iz, d2E, mx, my, mz, dt, 0.0)
+        self.tau = tau
 
     def m_dot(self,m):
         m = [self.mx, self.my, self.mz]
         LdH = self.get_L(m)@self.d2E @ m
         M = 0.5*self.get_L(m) @ self.d2E @ LdH
         
-        return LdH+ self.dt*self.dt*self.tau*M
+        return LdH + self.dt*self.tau*M
 
 
 
@@ -606,7 +606,7 @@ class Neural(RigidBody):#SeRe forward Euler
             if self.method != "implicit":
                 E_zz = utils.compute_hessian(self.energy_net, z_tensor)
                 M = 0.5*L @ E_zz.detach().numpy() @ L @ E_z
-                hamiltonian += self.dt*self.dt*self.tau_net((M,0))
+                hamiltonian += self.dt*self.tau_net((M,0))
 
 
         return hamiltonian

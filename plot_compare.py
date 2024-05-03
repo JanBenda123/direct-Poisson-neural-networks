@@ -10,6 +10,8 @@ import os
 import torch
 from matplotlib import cm
 
+from models.RigidBody import Cannonical
+
 def get_frames_and_titles():
     """
     The function `get_frames_and_titles` returns a list of dataframes and a list of titles based on the
@@ -89,7 +91,7 @@ def sort_data(xs, ys):
     newys = ys[p]
     return newxs, newys
 
-def add_plot(ax, x,y, name="", apply_filter=False, split = True):
+def add_plot(ax, x,y, name="", apply_filter=False, split = True, log=False):
     """
     The function `add_plot` takes in an `ax` object, x and y data, and optional parameters to apply
     filters and split the data into forward paths, and plots the data on the given axes object.
@@ -103,6 +105,8 @@ def add_plot(ax, x,y, name="", apply_filter=False, split = True):
     """
     #ax.scatter(x[::args.plot_every],y[::args.plot_every])
     #newxs, newys = remove_returns(x[::args.plot_every],y[::args.plot_every])
+    plot = ax.semilogy if log else ax.plot
+
     newxs, newys = x, y
     if apply_filter:
         newxs, newys = filter(x[::args.plot_every],y[::args.plot_every])
@@ -111,11 +115,11 @@ def add_plot(ax, x,y, name="", apply_filter=False, split = True):
     if split:
         paths = split_data_to_forward_paths(x, y)
         ts = x[:len(paths[0])]
-        ax.plot(ts, paths[0], lw=0.7, label = name)
+        plot(ts, paths[0], lw=0.7, label = name)
         for i in range(1, len(paths)):
-            ax.plot(ts, paths[i], lw=0.7)
+            plot(ts, paths[i], lw=0.7)
     else:
-        ax.plot(newxs, newys, lw=0.7, label=name)
+        plot(newxs, newys, lw=0.7, label=name)
     #newxs, newys = sort_data(x[::args.plot_every],y[::args.plot_every])
     #ax.plot(remove_returns(x[::args.plot_every],y[::args.plot_every]), lw=0.7, label=name)
 
@@ -485,6 +489,12 @@ def generate_L_points(args, L_tensor):
     else:
         return mx_mesh, my_mesh, mz_mesh, rx_mesh, ry_mesh, rz_mesh, L
 
+def get_total_errors(dfgt,df,times,dim):
+    fields=dfgt.columns.tolist()[2+dim:2+2*dim]
+    sq_err = df[fields[0]][:len(times)].to_numpy()*0
+    for field in fields:
+        sq_err += (dfgt[field][:len(times)].to_numpy()-df[field][:len(times)].to_numpy())**2
+    return np.sqrt(sq_err)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -539,13 +549,22 @@ if __name__ == "__main__":
     parser.add_argument('--init_q', nargs='*', help='Initial values of canonical coordinates for Cannonical models', required=False,type=float , default=[0])
     parser.add_argument('--init_p', nargs='*', help='Initial values of conjugate momenta for Cannonical models', required=False,type=float , default=[1])
     parser.add_argument('--H',  type=str, help='Hamiltonian choice for Cannonical model. 1DHO  - 1 dimensoinal harmonic oscilator', required=False, default="1DHO")
-    parser.add_argument('--no_plot', help='Turns off plotting after learning',action="store_true" , default=False) 
+    parser.add_argument('--no_plot', help='Turns off plotting after learning',action="store_true" , default=False)
+    parser.add_argument('--plot_total_sim_error', help='plots the log norm of the difference between GT and simulated trajectories',action="store_true" , default=False) 
     #parser.add_argument("--plot_compatibility_hist", default=False, action="store_true", help="Plot L compatibility errors histogram")
 
 
     args = parser.parse_args([] if "__file__" not in globals() else None)
 
     flds, dfli, dflw, dfls, dfgt = None, None, None, None, None
+    
+    dim = None
+
+    match args.model:
+        case "CANN": 
+            dim = Cannonical.get_ham(args.H)[1]
+        case "RB" | "HT": 
+            dim = 3
 
     file_name_dataset = args.folder_name+"/data/dataset.xyz"
     dfds = pd.read_csv(file_name_dataset, nrows=args.plot_steps)
@@ -1239,6 +1258,10 @@ if __name__ == "__main__":
         plot_fields_errors(["rx", "ry", "rz"], field_name = "r")
 
     if args.plot_CANN_errors:
+        fields = []
+        for i in range(1,dim//2 +1):
+            fields.append("p"+str(i))
+            fields.append("q"+str(i))
         plot_fields_errors(["q1", "p1"], field_name = "z")
 
 
@@ -1562,3 +1585,24 @@ if __name__ == "__main__":
             else:
                 raise Exception("Model not implemented.")
 
+        
+
+    if args.plot_total_sim_error:
+        x_gt = split_to_forward_paths(dfgt, "q1")[1]
+        times = dfgt["time"][:len(x_gt)]
+        
+        if args.soft:
+            add_plot(plt, times, get_total_errors(dfgt,dfls,times,dim), name=args.model +" soft error",log =True)
+        if args.implicit:
+            add_plot(plt, times, get_total_errors(dfgt,dfli,times,dim), name=args.model +" implicit error",log =True)
+        if args.without:
+            add_plot(plt, times, get_total_errors(dfgt,dflw,times,dim), name=args.model+" without error",log =True)
+        plt.axvline(x=5, color='r', linestyle='--', label="Boundary of learning region")
+        plt.legend()
+        plt.title("Log plot of MSE of simulated trajectories")
+        plt.xlabel("Time")
+        if args.export:
+            file_name = args.folder_name+"/graphics/"+args.model+"_logMSE.png"
+            print("Exporting figure to: "+file_name)
+            plt.savefig(file_name) 
+        plt.show()

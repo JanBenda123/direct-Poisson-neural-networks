@@ -23,7 +23,6 @@ def check_folder(name):
         os.makedirs(graphics_name)
 
 
-
 def compute_hessian(outputs, inputs):
         batch_size,input_size = inputs.shape
         f= lambda i: outputs(i).sum()

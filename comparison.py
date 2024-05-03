@@ -488,6 +488,8 @@ if __name__ == "__main__":
         logger.log("Without Jacobi trained")
     if not args.no_show:
         plot_training_errors(args)
+    
+    #args.steps*=2
 
     generate_trajectories(args)  
     logger.log("Network trajectories generated")

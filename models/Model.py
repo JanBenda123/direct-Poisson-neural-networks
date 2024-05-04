@@ -184,5 +184,5 @@ class TauNet(nn.Module):
     def tau(self):
         return (self.tauM,self.tauN) 
     def forward(self, inp):
-        return self.tauM*inp[0]#+self.tauN(inp[1])
+        return 1*inp[0]#+self.tauN(inp[1])
  

@@ -1588,7 +1588,8 @@ if __name__ == "__main__":
         
 
     if args.plot_total_sim_error:
-        x_gt = split_to_forward_paths(dfgt, "q1")[1]
+        col1=dfgt.columns.tolist()[2+dim]
+        x_gt = split_to_forward_paths(dfgt, col1)[1]
         times = dfgt["time"][:len(x_gt)]
         
         if args.soft:
@@ -1597,7 +1598,7 @@ if __name__ == "__main__":
             add_plot(plt, times, get_total_errors(dfgt,dfli,times,dim), name=args.model +" implicit error",log =True)
         if args.without:
             add_plot(plt, times, get_total_errors(dfgt,dflw,times,dim), name=args.model+" without error",log =True)
-        plt.axvline(x=5, color='r', linestyle='--', label="Boundary of learning region")
+        #plt.axvline(x=5, color='r', linestyle='--', label="Boundary of learning region")
         plt.legend()
         plt.title("Log plot of MSE of simulated trajectories")
         plt.xlabel("Time")

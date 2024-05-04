@@ -103,6 +103,7 @@ class Learner(object):
         self.loss_fn = torch.nn.MSELoss()
 
         self.train_errors = []
+        self.tau_values=[]
         self.validation_errors = []
 
     def mov_loss_without(self, zn_tensor, zn2_tensor, mid_tensor):
@@ -291,6 +292,7 @@ class Learner(object):
                 print("Training err over epoch: %.4f " % (float(train_acc)))
                 self.train_errors.append([float(train_acc), 0.0])
 
+
             # Run a validation loop at the end of each epoch.
             jacobi_loss = None
             for step, (zn_tensor, zn2_tensor, mid_tensor) in enumerate(self.valid_loader):
@@ -324,6 +326,7 @@ class Learner(object):
                 print("Validation error: value %.4f" % (float(val_acc_val)))
 
             print("Time taken: %.2fs" % (time.time() - start_time))
+            
             scheduler.step()
 
         # The above code is saving various variables and dataframes to files based on the value of the
@@ -462,7 +465,7 @@ class LearnerDissip(Learner):
 
         pure_zdot = torch.matmul(Lz, E_z.unsqueeze(2)).squeeze()
         M = torch.matmul(E_zz, pure_zdot.unsqueeze(-1)).squeeze(-1)
-        M = 0.5*torch.matmul(Lz, M.unsqueeze(-1)).squeeze(-1).detach()
+        M = 0.5*torch.matmul(Lz, M.unsqueeze(-1)).squeeze(-1)
 
 
         return  pure_zdot+self.taus((M,0))
@@ -476,7 +479,7 @@ class LearnerDissip(Learner):
 
         pure_zdot = torch.cross(Jz, E_z, dim=1)
         M = torch.matmul(E_zz, pure_zdot.unsqueeze(-1)).squeeze(-1)
-        M = 0.5*torch.cross(Jz, M, dim=1).detach()
+        M = 0.5*torch.cross(Jz, M, dim=1)
 
 
         return  pure_zdot+self.taus((M,0))

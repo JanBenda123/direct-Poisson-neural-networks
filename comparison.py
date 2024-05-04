@@ -492,6 +492,17 @@ if __name__ == "__main__":
     
     #args.steps*=2
 
+    try: # dont stop me now
+        for mode in ["without", "soft","implicit"]:
+            try:
+                tau_net= torch.load(args.folder_name+f"/saved_models/{mode}_taus")
+                tau_net.eval()
+                print(f"tau value for {mode}:", tau_net.tauM.item())
+            except:
+                pass # ¯\_(ツ)_/¯
+    except:
+        pass 
+
     generate_trajectories(args)  
     logger.log("Network trajectories generated")
     logger.close()

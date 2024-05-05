@@ -301,6 +301,7 @@ class Learner(object):
                 zn2_tensor.requires_grad = True
                 mid_tensor.requires_grad = True
 
+
                 if method == "without":
                     mov_loss, jacobi_loss = self.mov_loss_without_with_jacobi(zn_tensor, zn2_tensor, mid_tensor, reduced_L)
                 elif method == "implicit":
@@ -494,7 +495,7 @@ class LearnerDissip(Learner):
         :param mid_tensor: The `mid_tensor` parameter is not used in the `mov_loss_without` function. It is not necessary for the calculation and can be removed from the function signature
         :return: the result of the expression `(zn_tensor - zn2_tensor)/self.dt + 1.0/2.0*(torch.matmul(Lz, E_z.unsqueeze(2)).squeeze() + torch.matmul(Lz2, E_z2.unsqueeze(2)).squeeze())`.
         """
-        return (zn_tensor - zn2_tensor)/self.dt + (self.get_neural_dz((zn_tensor+zn2_tensor)/2))
+        return (zn2_tensor - zn_tensor)/self.dt - (self.get_neural_dz((zn_tensor+zn2_tensor)/2))
 
     def mov_loss_without_with_jacobi(self, zn_tensor, zn2_tensor, mid_tensor, reduced_L):
         """

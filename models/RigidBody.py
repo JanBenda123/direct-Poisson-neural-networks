@@ -444,7 +444,7 @@ class RBRK4(RigidBody):#implicit midpoint
         LdH = self.get_L(m)@self.d2E @ m
         M = 0.5*self.get_L(m) @ self.d2E @ LdH
         
-        return LdH + self.dt*self.tau*M
+        return LdH + self.tau*M
 
 
 
@@ -592,21 +592,27 @@ class Neural(RigidBody):#SeRe forward Euler
         En = self.energy_net(z_tensor)
 
         E_z = torch.autograd.grad(En.sum(), z_tensor, only_inputs=True)[0]
-        E_z = torch.flatten(E_z)
+        E_z = torch.flatten(E_z).detach().numpy()
 
         if self.method == "soft" or self.method == "without":
             L = self.L_net(z_tensor).detach().numpy()[0]
-            hamiltonian = np.matmul(L, E_z.detach().numpy())
+            hamiltonian = np.matmul(L, E_z)
+
+            if self.dissip:
+                E_zz = utils.compute_hessian(self.energy_net, z_tensor).detach().numpy()
+                M = 0.5*L @ E_zz @ L @ E_z
+                hamiltonian += self.tau_net((M,0))
         else:
             J, cass = self.J_net(z_tensor)
             J = J.detach().numpy()
-            hamiltonian = np.cross(J, E_z.detach().numpy())
+            hamiltonian = np.cross(J, E_z)
+            if self.dissip:
+                E_zz = utils.compute_hessian(self.energy_net, z_tensor).detach().numpy()
+                M = 0.5*np.cross(J, E_zz @ np.cross(J, E_z))
+                hamiltonian += self.tau_net((M,0))
+            
 
-        if self.dissip:
-            if self.method != "implicit":
-                E_zz = utils.compute_hessian(self.energy_net, z_tensor)
-                M = 0.5*L @ E_zz.detach().numpy() @ L @ E_z
-                hamiltonian += self.dt*self.tau_net((M,0))
+        
 
 
         return hamiltonian

@@ -177,12 +177,12 @@ class JacVectorNet(nn.Module):
 class TauNet(nn.Module):
     def __init__(self,batch_size):
         super(TauNet, self).__init__()
-        self.tauM = nn.Parameter(torch.ones(1))
-        self.tauN = nn.Parameter(torch.ones(1))
+        self.tauM = nn.Parameter(torch.tensor([5.0]))
+        self.tauN = nn.Parameter(torch.tensor([5.0]))
         self.batch_size = batch_size
 
     def tau(self):
         return (self.tauM,self.tauN) 
     def forward(self, inp):
-        return 1*inp[0]#+self.tauN(inp[1])
+        return self.tauM*inp[0]#+self.tauN(inp[1])
  

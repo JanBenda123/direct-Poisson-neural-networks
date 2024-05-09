@@ -379,6 +379,33 @@ def plot_first(field):
         plt.savefig(file_name) 
     plt.show()
 
+def plot_E(normalize = False):
+    field = "E"
+    """
+    The function `plot_first` plots different fields based on the given arguments and saves the figure
+    if specified.
+    
+    :param field: The `field` parameter is a string that represents the field or variable you want to plot. It is used to access the corresponding data from the `dfgt`, `dfls`, `dfli`, and `dflw` dataframes
+    """
+    x_gt = split_to_forward_paths(dfgt, field)[1]
+    times = dfgt["time"][:len(x_gt)]
+    if args.soft:
+        add_plot(plt, times, dfls[field][:len(times)]-normalize*dfls[field][0], name=args.model +" soft: "+field )
+    if args.implicit:
+        add_plot(plt, times, dfli[field][:len(times)]-normalize*dfli[field][0], name=args.model +" implicit: "+field )
+    if args.without:
+        add_plot(plt, times, dflw[field][:len(times)]-normalize*dflw[field][0], name=args.model+" without: "+field )
+    if args.GT:
+        add_plot(plt, times, dfgt[field][:len(times)]-normalize*dfgt[field][0], name=args.model+" GT: "+field )
+    plt.legend()
+    plt.title("Evolution of " +field +" variable")
+    plt.xlabel("Time")
+    if args.export:
+        file_name = args.folder_name+"/graphics/"+args.model+"_first_"+field+".png"
+        print("Exporting figure to: "+file_name)
+        plt.savefig(file_name) 
+    plt.show()
+
 def generate_E_points(args, energy):
     """
     The function `generate_E_points` generates random initial conditions for a given energy function and
@@ -391,8 +418,8 @@ def generate_E_points(args, energy):
     #generates random initial conditions (uniformly on the ball with radius as in the original args)
     sqm = torch.tensor(args.init_mx**2 + args.init_my**2 + args.init_mz**2) #square magnitude of m
     mmag = torch.sqrt(sqm) #magnitude of m
-    mx = torch.linspace(0, mmag, args.density)
-    my = torch.linspace(0, mmag, args.density)
+    mx = torch.linspace(-mmag, mmag, args.density)
+    my = torch.linspace(-mmag, mmag, args.density)
     mx_mesh, my_mesh = torch.meshgrid((mx, my)) 
     mxsq_mesh, mysq_mesh = mx_mesh**2, my_mesh**2
     mzsq_mesh = sqm - mxsq_mesh - mysq_mesh
@@ -616,7 +643,7 @@ if __name__ == "__main__":
 
     if args.plot_E:
         #plot_field(fields = ["E"])
-        plot_first("E")
+        plot_E(True)
 
     if args.plot_L:
         if args.model == "RB":

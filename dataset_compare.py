@@ -124,7 +124,7 @@ if __name__ == "__main__":
 
 
     if args.plot_total_sim_error:
-        x_gt = split_to_forward_paths(dfgt1, "q1")[1]
+        x_gt = split_to_forward_paths(dfgt1, "mx")[1]
         times = dfgt1["time"][:len(x_gt)]
         
         if args.soft:

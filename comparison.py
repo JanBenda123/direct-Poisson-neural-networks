@@ -380,9 +380,9 @@ if __name__ == "__main__":
     parser.add_argument("--init_rx", default=1.0, type=float, help="Initial r, x component")
     parser.add_argument("--init_ry", default=-3.0, type=float, help="Initial r, y component")
     parser.add_argument("--init_rz", default=10.0, type=float, help="Initial r, z component")
-    parser.add_argument("--Ix", default=10.0, type=float, help="Ix")
-    parser.add_argument("--Iy", default=20.0, type=float, help="Iy")
-    parser.add_argument("--Iz", default=40.0, type=float, help="Iz")
+    parser.add_argument("--Ix", default=1.0, type=float, help="Ix")
+    parser.add_argument("--Iy", default=2.0, type=float, help="Iy")
+    parser.add_argument("--Iz", default=16.0, type=float, help="Iz")
     parser.add_argument("--dt", default=0.0, type=float, help="Timestep, 0.0 for automatic")
     parser.add_argument("--alpha", default=2.0, type=float, help="Potential magnitude or tau prefactor.")
     parser.add_argument("--implicit", default=False, action="store_true", help="Use implicit Jacobi.")
@@ -491,6 +491,7 @@ if __name__ == "__main__":
         plot_training_errors(args)
     
     #args.steps*=2
+    #$\E{-8.6}{-3}$args.steps = 1000 # longer trajectory for dissipation simulation.
 
     try: # dont stop me now
         for mode in ["without", "soft","implicit"]:

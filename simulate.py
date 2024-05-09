@@ -261,6 +261,8 @@ def simulate(args, method = "normal"): #simulate with args given below
 
         if i % store_each == 0:
             t = dt * i
+            if t > 4:
+                pass
             msq = np.dot(m,m)
             ts.append(t)
             if args.err_std is not None and (args.model == "RB" or args.model == "Sh"):

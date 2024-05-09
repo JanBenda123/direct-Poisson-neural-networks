@@ -466,7 +466,7 @@ class LearnerDissip(Learner):
 
         pure_zdot = torch.matmul(Lz, E_z.unsqueeze(2)).squeeze()
         M = torch.matmul(E_zz, pure_zdot.unsqueeze(-1)).squeeze(-1)
-        M = 0.5*torch.matmul(Lz, M.unsqueeze(-1)).squeeze(-1)
+        M = 0.5*torch.matmul(Lz, M.unsqueeze(-1)).squeeze(-1).detach()
 
 
         return  pure_zdot+self.taus((M,0))
@@ -479,7 +479,7 @@ class LearnerDissip(Learner):
         E_zz = utils.compute_hessian(self.energy, zn_tensor)
 
         pure_zdot = torch.cross(Jz, E_z, dim=1)
-        M = torch.matmul(E_zz, pure_zdot.unsqueeze(-1)).squeeze(-1)
+        M = torch.matmul(E_zz, pure_zdot.unsqueeze(-1)).squeeze(-1).detach()
         M = 0.5*torch.cross(Jz, M, dim=1)
 
 

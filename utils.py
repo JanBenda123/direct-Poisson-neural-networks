@@ -24,7 +24,7 @@ def check_folder(name):
 
 
 def compute_hessian(outputs, inputs):
-        batch_size,input_size = inputs.shape
+         #batch_size,input_size = inputs.shape
         f= lambda i: outputs(i).sum()
         hess_batch = []
         for input in inputs:

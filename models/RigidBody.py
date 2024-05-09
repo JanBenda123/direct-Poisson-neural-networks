@@ -568,7 +568,7 @@ class Neural(RigidBody):#SeRe forward Euler
             self.J_net = torch.load(name+'/saved_models/implicit_jacobi_J')
             self.J_net.eval()
             if dissip:
-                self.tau_net= torch.load(name+'/saved_models/without_taus')
+                self.tau_net= torch.load(name+'/saved_models/implicit_taus')
                 self.tau_net.eval()
             def L_net(z):
                 L = -1*torch.tensor([[[0.0, z[2], -z[1]],[-z[2], 0.0, z[0]],[z[1], -z[0], 0.0]]])
@@ -599,17 +599,18 @@ class Neural(RigidBody):#SeRe forward Euler
             hamiltonian = np.matmul(L, E_z)
 
             if self.dissip:
-                E_zz = utils.compute_hessian(self.energy_net, z_tensor).detach().numpy()
+                E_zz = torch.autograd.functional.hessian(lambda i: self.energy_net(i).sum(), z_tensor).detach().numpy()
                 M = 0.5*L @ E_zz @ L @ E_z
-                hamiltonian += self.tau_net((M,0))
+                hamiltonian += self.tau_net.tauM.item() * M
         else:
             J, cass = self.J_net(z_tensor)
             J = J.detach().numpy()
             hamiltonian = np.cross(J, E_z)
             if self.dissip:
-                E_zz = utils.compute_hessian(self.energy_net, z_tensor).detach().numpy()
+
+                E_zz = torch.autograd.functional.hessian(lambda i: self.energy_net(i).sum(), z_tensor).detach().numpy()
                 M = 0.5*np.cross(J, E_zz @ np.cross(J, E_z))
-                hamiltonian += self.tau_net((M,0))
+                hamiltonian += self.tau_net.tauM.item() * M
             
 
         

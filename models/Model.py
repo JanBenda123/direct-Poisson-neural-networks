@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 # The `EnergyNet` class is a neural network model that takes in input data and outputs a single value,
 # using a specified number of layers and neurons per layer.
+dropout_rate = 0.5
 class EnergyNet(nn.Module):
     def __init__(self, dim, neurons, layers, batch_size, quad_features = False):
         """
@@ -24,8 +25,7 @@ class EnergyNet(nn.Module):
         self.batch_size = batch_size
 
         self.inputDense = nn.Linear(dim + self.ENABLED_QUADRATIC_FEATURES*dim*(dim+1)//2, neurons)
-        self.hidden = [nn.Linear(neurons, neurons)
-                       for i in range(layers-1)]
+        self.hidden = [ x for _ in range(layers-1) for x in [nn.Linear(neurons, neurons),nn.Dropout(dropout_rate)] ]
         self.hidden = nn.ModuleList(self.hidden)
         self.outputDense = nn.Linear(neurons, 1)
 
@@ -81,8 +81,7 @@ class TensorNet(nn.Module):
 
         self.inputDense = nn.Linear(dim, neurons)
         print("dim", dim)
-        self.hidden = [nn.Linear(neurons, neurons)
-                       for i in range(layers-1)]
+        self.hidden = [ x for _ in range(layers-1) for x in [nn.Linear(neurons, neurons),nn.Dropout(dropout_rate)] ]
         self.hidden = nn.ModuleList(self.hidden)
         self.outputSize = int(dim*(dim-1)/2)
         self.outputDense = nn.Linear(neurons, self.outputSize) #input, output = number of independent entries of the skew-symmetric L

@@ -1229,7 +1229,8 @@ if __name__ == "__main__":
         which the errors are being plotted. It is an optional parameter and if not provided, it will default
         to an empty string
         """
-        print("Plotting errors of fields: ", fields)
+        #print("Plotting errors of fields: ", fields)
+        print(args.folder_name)
         file_name = args.model+"_"+field_name+"-errors"
         for data_frame, name in zip(frames, titles):
             values = {}
@@ -1244,24 +1245,26 @@ if __name__ == "__main__":
             average_error = np.median(total_error)
             print("Median "+field_name+" error for ", name, " is: ", average_error)
             file_name += "-"+name
-            if args.export:
+            if args.export and False:
                 add_log(file_name+" "+field_name, average_error)
             #add_plot(plt, iterations, total_error, name=name+": "+name+" error")
             try:
-                plt.hist(np.log10(total_error), bins=100, label=name, alpha=0.6)
+                pass
+                # plt.hist(np.log10(total_error), bins=100, label=name, alpha=0.6)
             except:
                 pass
             #add_plot(plt, data_frame["time"], error12, name=name+"_error12")
             #add_plot(plt, data_frame["time"], error23, name=name+"_error23")
 
-        plt.legend()
-        plt.xlabel("Trajectory errors (log_10): "+field_name)
+        #plt.legend()
+        #plt.xlabel("Trajectory errors (log_10): "+field_name)
         if args.export:
             name = file_name
             file_name = args.folder_name+"/"+file_name+".png"
-            print("Exporting figure to: "+file_name)
+            # print("Exporting figure to: "+file_name)
             plt.savefig(file_name) 
-        plt.show()
+        # plt.show()
+        print()
 
     if args.plot_RB_errors:
         plot_fields_errors(["mx", "my", "mz"], field_name = "m")
